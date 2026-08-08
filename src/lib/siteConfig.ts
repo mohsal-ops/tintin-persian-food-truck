@@ -7,12 +7,12 @@
 // still exists, it is simply not linked.
 const FEATURES = {
   catering: true,
-  giftCard: true,
-  rewards: true,
-  blog: true,
+  giftCard: false,
+  rewards: false,
+  blog: false,
 };
-type FeatureKey = keyof typeof FEATURES;
 
+type FeatureKey = keyof typeof FEATURES;
 type NavLink = { label: string; href: string; feature?: FeatureKey };
 
 const ALL_NAV_LINKS: NavLink[] = [
@@ -37,162 +37,148 @@ const pickLink = ({ label, href }: NavLink) => ({ label, href });
 
 export const SITE_CONFIG = {
   // Brand
-  name: "tintin persian food truck",
-  tagline: "tintin persian food truck",
+  name: "Tin Tin Persian Food Truck",
+  tagline: "Persian Street Food | Kabobs & Late-Night Bites",
   subTagline:
-    "Modern specialty coffee, handcrafted espresso drinks, premium matcha, hojicha, and fresh pastries in Diamond Bar, California.",
-  legalName: "tintin persian food truck",
-  trademark: "tintin persian food truck",
+    "Authentic Persian street food, saffron-marinated kabobs, wraps, and bowls cooked fresh daily in Houston, TX.",
+  legalName: "Tin Tin Persian Food Truck LLC",
+  trademark: "Tin Tin",
 
-  // CTA
-  menuCtaLabel: "Order Online",
+  // Admin intro animation: "burger" (fast food) | "coffee" (café) | "pizza" (pizzeria)
+  loaderStyle: "burger",
 
-  // Contact
-  address: "123 Main St, Your City, ST 00000",
-  street: "123 Main St",
-  city: "Your City",
-  state: "ST",
-  zip: "00000",
-  phone: "000-000-0000",
-  email: "hello@tintin-persian-food-truck.com",
-  cateringEmail: "hello@tintin-persian-food-truck.com",
-  timezone: "America/Los_Angeles",
+  // Main call-to-action button label, used on every "menu" button across the
+  // site. Set it to whatever fits: "Order now", "View our menu", "See the menu"…
+  menuCtaLabel: "Order now",
 
-  lat: 0,
-  lng: 0,
-
+  // Contact & Location
+  address: "1325 Westheimer Rd, Houston, TX 77006",
+  street: "1325 Westheimer Rd",
+  city: "Houston",
+  state: "TX",
+  zip: "77006",
+  phone: "832-752-7383",
+  email: "hello@tintinhtx.com",
+  cateringEmail: "catering@tintinhtx.com",
+  timezone: "America/Chicago",
+  lat: 29.7431,
+  lng: -95.3975,
   googleMapsUrl:
-    "https://www.google.com/maps/search/?api=1&query=Grid+Coffee+Diamond+Bar",
+    "https://www.google.com/maps/search/?api=1&query=1325%20Westheimer%20Rd%2C%20Houston%2C%20TX%2077006",
 
   // Social
-  instagram: "grid_coffee",
-  instagramUrl: "https://www.instagram.com/grid_coffee/",
-  facebookUrl: "https://www.facebook.com/GridcoffeeDB/",
+  instagram: "tintinhtx",
+  instagramUrl: "https://www.instagram.com/tintinhtx/",
+  facebookUrl: "",
   tiktokUrl: "",
   beholdFeedId: "",
 
   // SEO
-  siteUrl: "https://tintin-persian-food-truck.vercel.app",
-
-  seoTitle:
-    "tintin persian food truck",
-
+  siteUrl: "https://tintinhtx.com",
+  seoTitle: "Tin Tin Persian Food Truck | Authentic Persian Food in Houston, TX",
   seoDescription:
-    "tintin persian food truck — order online.",
-
+    "Tin Tin Persian Food Truck in Montrose, Houston. Serving fresh saffron kabobs, steak and chicken wraps, bowls, and late-night Persian street food.",
   seoKeywords: [
-    "Grid Coffee",
-    "Grid Coffee Diamond Bar",
-    "Coffee Diamond Bar",
-    "Specialty Coffee Diamond Bar",
-    "Matcha Diamond Bar",
-    "Hojicha Latte",
-    "Cafe Diamond Bar",
-    "Espresso Diamond Bar",
-    "Coffee Shop Diamond Bar",
+    "Tin Tin Persian Food Truck",
+    "Persian Food Truck Houston",
+    "Persian Food Houston",
+    "Kabobs Houston TX",
+    "Late Night Food Montrose Houston",
+    "Halal Food Truck Houston",
+    "Saffron Lemonade Houston",
+    "Beef Tenderloin Kabob Houston",
   ],
-
   ogImage: "/general/generalPages/mainImage.jpg",
 
-  // Structured Data
-  cuisines: ["Coffee", "Cafe", "Desserts", "Bakery"],
+  // Structured-data / business info (used in JSON-LD)
+  cuisines: ["Persian", "Middle Eastern", "Halal", "Grill"],
   priceRange: "$$",
 
-  // Branding
-  primaryColor: "#111111",
-  secondaryColor: "#D8B26E",
-  accentColor: "#7A5C3A",
+  // Colors (Tailwind hex values - vibrant yellow & charcoal inspired by logo)
+  primaryColor: "#eab308",
+  secondaryColor: "#1f2937",
+  accentColor: "#d97706",
 
-  // Hours
+  // Hours (used for open/closed status) - hour values are 24h local time
+  // Daily 11 AM - 12 AM | Fri & Sat till 2 AM
   hours: [
-    { day: "Sunday", open: 7, close: 17.5 },
-    { day: "Monday", open: 7, close: 17.5 },
-    { day: "Tuesday", open: 7, close: 17.5 },
-    { day: "Wednesday", open: 7, close: 17.5 },
-    { day: "Thursday", open: 7, close: 17.5 },
-    { day: "Friday", open: 7, close: 20 },
-    { day: "Saturday", open: 7, close: 20 },
+    { day: "Sunday", open: 11, close: 24 },
+    { day: "Monday", open: 11, close: 24 },
+    { day: "Tuesday", open: 11, close: 24 },
+    { day: "Wednesday", open: 11, close: 24 },
+    { day: "Thursday", open: 11, close: 24 },
+    { day: "Friday", open: 11, close: 2 },
+    { day: "Saturday", open: 11, close: 2 },
   ] as { day: string; open: number | null; close: number | null }[],
 
-  // Home
+  // Home page text sections
   home: {
-    heroHeadline: "Specialty Coffee, Crafted Daily",
-
-    heroSubHeadline:
-      "",
-
-    galleryTitle: "Grid Coffee",
-
-    gallerySubtitle:
-      "Modern Coffee Experience in Diamond Bar",
-
+    heroHeadline: "Houston's Premier Persian Street Food",
+    heroSubHeadline: "Saffron-marinated kabobs, fresh wraps, bowls & late-night bites",
+    galleryTitle: "Tin Tin Persian Food Truck",
+    gallerySubtitle: "1325 Westheimer Rd, Houston, TX",
     distinctiveFeatures: [
       {
-        title: "Specialty Coffee",
+        title: "Cooked Fresh Daily, Never Frozen",
         description:
-          "Every espresso shot is carefully extracted and every drink is handcrafted using premium beans and quality ingredients.",
+          "Traditional family recipes using saffron-marinated chicken, beef tenderloin, ground beef, and fresh veggies grilled low and fast over open heat.",
         image: "/general/generalPages/enjoy.jpg",
       },
       {
-        title: "Signature Drinks & Fresh Pastries",
+        title: "Persian Street Food Experience",
         description:
-          "Enjoy our handcrafted matcha, hojicha lattes, seasonal beverages, and freshly baked pastries in a modern minimalist café.",
+          "Enjoy signature sandwiches, hearty rice & salad bowls, house-made sauces (Hermez, Sari, Kashk), and our famous Saffron Lemonade (The Nasrin).",
         image: "/general/generalPages/vibe.jpg",
       },
     ],
-
     featuring: [
-      {
-        name: "Specialty Coffee",
-        icon: "FaCoffee",
-      },
-      {
-        name: "Fresh Pastries",
-        icon: "GiCroissant",
-      },
-      {
-        name: "Takeout",
-        icon: "PiPackageFill",
-      },
-      {
-        name: "Modern Café",
-        icon: "MdOutlineStorefront",
-      },
+      { name: "Takeaway", icon: "PiPackageFill" },
+      { name: "100% Halal", icon: "MdOutlineVerified" },
+      { name: "Catering", icon: "BsBagCheckFill" },
+      { name: "Late Night", icon: "IoMoonOutline" },
     ],
-
     faq: [
       {
-        question: "What is Grid Coffee known for?",
+        question: "Where is Tin Tin Persian Food Truck located?",
         answer:
-          "We're known for handcrafted specialty coffee, matcha, hojicha lattes, and our clean modern café experience.",
+          "We are located at 1325 Westheimer Rd, Houston, TX 77006 in the heart of Montrose.",
       },
       {
-        question: "Do you serve food?",
+        question: "Is your menu Halal?",
         answer:
-          "Yes. We offer a selection of freshly baked pastries that pair perfectly with our coffee and tea drinks.",
+          "Yes! We offer 100% Halal options across our kabob wraps, bowls, and specialties.",
       },
       {
-        question: "Do you offer takeout?",
+        question: "What are your most popular menu items?",
         answer:
-          "Absolutely. Every drink and pastry on our menu is available for takeout.",
+          "Our fan favorites include the Tehran (Saffron Chicken Wrap), Isfahan (Ground Beef Wrap), Tabriz (Steak Wrap), Steak & Fries Bowl, and our signature Saffron Lemonade (The Nasrin).",
       },
       {
-        question: "Where are you located?",
+        question: "Do you offer catering for private events?",
         answer:
-          "We're located in Diamond Bar, California, at 1139 S Diamond Bar Blvd Suite B.",
+          "Yes, we provide catering services for private parties, corporate events, and special gatherings. Reach out to us directly for inquiries.",
+      },
+      {
+        question: "What are your late-night hours?",
+        answer:
+          "We are open daily from 11:00 AM to 12:00 AM midnight, and extend late night until 2:00 AM on Fridays and Saturdays.",
       },
     ],
   },
 
+  // Which optional sections are enabled (see FEATURES above)
   features: FEATURES,
 
+  // Navbar links (derived from FEATURES)
   navLinks: ALL_NAV_LINKS.filter(enabled).map(pickLink),
 
+  // Footer
   footer: {
     get copyright() {
-      return `© ${new Date().getFullYear()} Grid Coffee. All rights reserved.`;
+      return `© ${new Date().getFullYear()} Tin Tin Persian Food Truck. All rights reserved.`;
     },
-
     links: ALL_FOOTER_LINKS.filter(enabled).map(pickLink),
   },
 };
+
+export type SiteConfig = typeof SITE_CONFIG;
