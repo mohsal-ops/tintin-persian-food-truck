@@ -37,29 +37,29 @@ const pickLink = ({ label, href }: NavLink) => ({ label, href });
 
 export const SITE_CONFIG = {
   // Brand
-  name: "Grid Coffee",
-  tagline: "Specialty Coffee Crafted Daily",
+  name: "tintin persian food truck",
+  tagline: "tintin persian food truck",
   subTagline:
     "Modern specialty coffee, handcrafted espresso drinks, premium matcha, hojicha, and fresh pastries in Diamond Bar, California.",
-  legalName: "Grid Coffee",
-  trademark: "Grid Coffee",
+  legalName: "tintin persian food truck",
+  trademark: "tintin persian food truck",
 
   // CTA
   menuCtaLabel: "Order Online",
 
   // Contact
-  address: "1139 S Diamond Bar Blvd Ste B, Diamond Bar, CA 91765",
-  street: "1139 S Diamond Bar Blvd Ste B",
-  city: "Diamond Bar",
-  state: "CA",
-  zip: "91765",
-  phone: "(909) 551-2688",
-  email: "info@gridcoffee.com",
-  cateringEmail: "info@gridcoffee.com",
+  address: "123 Main St, Your City, ST 00000",
+  street: "123 Main St",
+  city: "Your City",
+  state: "ST",
+  zip: "00000",
+  phone: "000-000-0000",
+  email: "hello@tintin-persian-food-truck.com",
+  cateringEmail: "hello@tintin-persian-food-truck.com",
   timezone: "America/Los_Angeles",
 
-  lat: 33.9995,
-  lng: -117.8109,
+  lat: 0,
+  lng: 0,
 
   googleMapsUrl:
     "https://www.google.com/maps/search/?api=1&query=Grid+Coffee+Diamond+Bar",
@@ -72,13 +72,13 @@ export const SITE_CONFIG = {
   beholdFeedId: "",
 
   // SEO
-  siteUrl: "https://gridcoffee.com",
+  siteUrl: "https://tintin-persian-food-truck.vercel.app",
 
   seoTitle:
-    "Grid Coffee | Specialty Coffee & Matcha in Diamond Bar, CA",
+    "tintin persian food truck",
 
   seoDescription:
-    "Grid Coffee serves handcrafted espresso drinks, matcha, hojicha, signature lattes, fresh pastries, and specialty coffee in Diamond Bar, California.",
+    "tintin persian food truck — order online.",
 
   seoKeywords: [
     "Grid Coffee",
