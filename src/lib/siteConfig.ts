@@ -8,7 +8,7 @@
 const FEATURES = {
   catering: true,
   giftCard: false,
-  rewards: false,
+  rewards: true,
   blog: false,
 };
 
