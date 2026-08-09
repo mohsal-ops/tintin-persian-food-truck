@@ -77,7 +77,7 @@ export function TopSection({
           alt={`${SITE_CONFIG.name} homemade food`}
           src={heroImage}
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-cover brightness-[0.4]"
+          className="object-cover sm:brightness-100 brightness-[0.4]"
         />
         <div className="sm:hidden absolute inset-0 bg-linear-to-t from-black/70 via-black/25 to-transparent z-20"></div>
       </div>
