@@ -142,7 +142,7 @@ export function AllDishesCardClient({
   };
 
   return (
-    <div className="group flex w-full space-x-2 md:rounded-2xl md:border border-y border-gray-200 md:p-0 p-2 transition-colors duration-200 hover:border-gray-300">
+    <div className="group flex w-full md:space-x-2 md:rounded-2xl md:border border-y border-gray-200 md:p-0 p-2 transition-colors duration-200 hover:border-gray-300">
       <div
         className={`flex py-3 flex-col justify-center gap-1 md:px-4 px-2 text-lg tracking-tight font-semibold ${image ? " w-3/5" : "w-full "}`}
       >
