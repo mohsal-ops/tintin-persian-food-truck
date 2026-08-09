@@ -19,6 +19,8 @@ import { TbPlant2Off } from "react-icons/tb";
 import { FaCoffee } from "react-icons/fa";
 import { GiCroissant } from "react-icons/gi";
 import { MdOutlineStorefront } from "react-icons/md";
+import { MdOutlineVerified, MdAttachMoney } from "react-icons/md";
+import { IoMoonOutline } from "react-icons/io5";
 import {
   Accordion,
   AccordionContent,
@@ -194,6 +196,9 @@ const FEATURING_ICONS: Record<string, React.ComponentType<{ size?: number }>> = 
   FaCoffee,
   GiCroissant,
   MdOutlineStorefront,
+  MdOutlineVerified,
+  MdAttachMoney,
+  IoMoonOutline,
 };
 
 export function Featuring() {
