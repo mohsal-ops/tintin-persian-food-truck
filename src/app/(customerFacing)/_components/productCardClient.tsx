@@ -30,31 +30,27 @@ export default function ProductCardClient({
   image,
 }: productObjectPath) {
   return (
-    <Link href={`/Menu`} className="group space-y-2 p-2 rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+    <Link href={`/Menu`} className="group flex w-36 shrink-0 flex-col gap-2 p-2 rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md sm:w-56">
       <Card
-        className="flex  rounded-2xl overflow-hidden gap-5 sm:[h-60 w-70]  h-36 flex-col w-36  "
+        className="relative aspect-square w-full overflow-hidden rounded-2xl"
         key={id}
       >
-        {/* <CardHeader className="relative w-full h-5/6 aspect-video">
-                </CardHeader> */}
-        <CardContent className=" flex items-end relative h-full p-0 w-full text-center ">
-          <div className="relative top-0 h-full w-full overflow-hidden">
+        <CardContent className="relative h-full w-full p-0">
+          <div className="relative h-full w-full overflow-hidden">
             <Image
               src={image ? image : fallbackImg}
               fill
               alt={name}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+              sizes="(max-width: 768px) 60vw, 240px"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           </div>
-
         </CardContent>
       </Card>
-      <div className="flex  flex-col gap-1 px-2 font-semibold w-full ">
-        <p>{name}</p>
+      <div className="flex flex-col gap-0.5 px-1 font-semibold">
+        <p className="line-clamp-2 min-h-[2.5rem] leading-tight">{name}</p>
         <p className="text-neutral-600">{formatCurrency(priceInCents / 100)}</p>
       </div>
-
     </Link>
   );
 }
