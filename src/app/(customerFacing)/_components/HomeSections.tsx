@@ -79,7 +79,7 @@ export function TopSection({
           sizes="(max-width: 768px) 100vw, 50vw"
           className="object-cover"
         />
-        <div className="sm:hidden absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent z-20"></div>
+        <div className="sm:hidden absolute inset-0 bg-linear-to-t from-black/70 via-black/25 to-transparent z-20"></div>
       </div>
     </div>
   );
