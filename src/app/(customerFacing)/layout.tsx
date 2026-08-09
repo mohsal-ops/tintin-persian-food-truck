@@ -7,6 +7,7 @@ import Link from "next/link";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 import { getLogoUrl } from "@/lib/siteSettings";
 import VisitAlert from "./_components/VisitAlert";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default async function Customerlayout({
   children,
@@ -19,6 +20,8 @@ export default async function Customerlayout({
 
   return (
     <SidebarProvider>
+      {/* One-time branded intro on the public site (once per browser session) */}
+      <LoadingScreen />
       <VisitAlert />
       <main className="flex relative flex-col w-full  pb- ">
         <div className="fixed top-0 left-0 right-0 z-50">
