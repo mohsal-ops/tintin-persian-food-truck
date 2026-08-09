@@ -149,7 +149,7 @@ export function AllDishesCardClient({
         <p>{name}</p>
         <p className="text-gray-500 text-sm font">
           {description?.split(" ").slice(0, 25).join(" ")}
-          {(description?.split(" ").length ?? 0) > 25 && "..."}
+          {(description?.split(" ").length ?? 0) > 15 && "..."}
         </p>
         <p className="text-gray-600 font-bold text-sm">
           {formatCurrency(priceInCents / 100)}
