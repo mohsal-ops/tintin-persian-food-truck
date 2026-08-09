@@ -40,7 +40,7 @@ export const SITE_CONFIG = {
   name: "Tin Tin Persian Food Truck",
   tagline: "Persian Street Food | Kabobs & Late-Night Bites",
   subTagline:
-    "Authentic Persian street food, saffron-marinated kabobs, wraps, and bowls cooked fresh daily in Houston, TX.",
+    "wraps, and bowls cooked fresh daily in Houston, TX.",
   legalName: "Tin Tin Persian Food Truck LLC",
   trademark: "Tin Tin",
 
