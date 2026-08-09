@@ -173,7 +173,7 @@ export default function CateringPageClient({ logoUrl }: { logoUrl?: string }) {
           <h1 className="text-4xl md:text-6xl font-extrabold text-brand drop-shadow-lg">
             Bring {SITE_CONFIG.name} to Your Event
           </h1>
-          <p className="text-lg md:text-xl drop-shadow-lg">
+          <p className="text-lg md:text-xl text-stone-200 drop-shadow-lg">
             From corporate events to private parties, make your event
             unforgettable with our bold flavors.
           </p>
