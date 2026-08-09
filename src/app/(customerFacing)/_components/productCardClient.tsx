@@ -97,15 +97,17 @@ export function PopularDishesCardClient({
             />
           </div>
 
-          <div className="absolute bottom-2 right-2 z-20">
-            <Button
-              onClick={() => setOpen(true)}
-              variant="outline"
-              className="h-9 w-9 rounded-full p-0 bg-white shadow-md hover:bg-stone-100"
-            >
-              <Plus className="stroke-2" size={20} />
-            </Button>
-          </div>
+          <div className="absolute bottom-0 z-20 flex justify-end w-full p-3 ">
+            <div className="flex gap-2 items-center  ">
+              <Button
+                onClick={() => setOpen(true)}
+                variant="outline"
+                className="w-10 h-10 "
+              >
+                <Plus className="stroke-1" size={28} />
+              </Button>
+            </div>
+          </div> 
         </CardContent>
       </Card>
       <div className="flex  flex-col gap-1 px-2 font-semibold w-full ">
