@@ -22,7 +22,7 @@ export default async function RewardsPage() {
             transform: "rotate(-8deg) scale(1.2)",
           }}
         />
-        <div className="absolute inset-0 bg-white/90" />
+        <div className="absolute inset-0 bg-black/90" />
 
         <div className="relative z-10">
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
