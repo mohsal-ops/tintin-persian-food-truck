@@ -90,6 +90,16 @@ export const SITE_IMAGE_GUIDE: Record<string, SlotGuide> = {
       { k: "full", active: true },
     ],
   },
+  catering_hero: {
+    page: "Catering",
+    href: "/catering",
+    where: "The hero photo at the top of the Catering page, beside the headline.",
+    blocks: [
+      { k: "nav" },
+      { k: "split", side: "left", active: true },
+      { k: "text" },
+    ],
+  },
 };
 
 const IMG_INACTIVE = "#e4e4e7";

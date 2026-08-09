@@ -213,8 +213,7 @@ export default function LoadingScreen({
 }) {
   const dish = resolveVariant(variant);
 
-  const [decided, setDecided] = useState(false); // checked the session flag yet?
-  const [play, setPlay] = useState(false); // actually show + animate?
+  const [play, setPlay] = useState(false); // start the animation cycle?
   const [phase, setPhase] = useState<Phase>("assemble");
   const [mounted, setMounted] = useState(true);
   const [loopCount, setLoopCount] = useState(0);
@@ -223,11 +222,11 @@ export default function LoadingScreen({
   const exitRef = useRef(false);
   const decidedOnce = useRef(false);
 
-  // Decide once, client-side, whether to play — once per browser session.
-  // Rendering null on both the server and the first client render (decided=false)
-  // avoids any hydration mismatch. The decidedOnce ref guards against React
-  // StrictMode's double-invoke in dev, which would otherwise read back the
-  // sessionStorage flag it just set and refuse to play.
+  // The overlay is rendered from the very first paint (mounted=true on the
+  // server too), so the site never flashes behind it. Here we decide, once per
+  // browser session, whether to actually run the animation — or, if it already
+  // played this session (production only), hide it immediately. The decidedOnce
+  // ref guards against React StrictMode's double-invoke in dev.
   useEffect(() => {
     if (decidedOnce.current) return;
     decidedOnce.current = true;
@@ -235,20 +234,20 @@ export default function LoadingScreen({
     // In dev, always play so the animation is easy to see while iterating; the
     // once-per-session gate only applies to the real (production) site.
     const isProd = process.env.NODE_ENV === "production";
-    if (keepLooping || !isProd) {
-      setPlay(true);
-      setDecided(true);
-      return;
+    if (!keepLooping && isProd) {
+      let already = false;
+      try {
+        already = !!sessionStorage.getItem(SESSION_KEY);
+        if (!already) sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {
+        already = false;
+      }
+      if (already) {
+        setMounted(false); // already shown this session — don't play again
+        return;
+      }
     }
-    let already = false;
-    try {
-      already = !!sessionStorage.getItem(SESSION_KEY);
-      if (!already) sessionStorage.setItem(SESSION_KEY, "1");
-    } catch {
-      already = false;
-    }
-    setPlay(!already);
-    setDecided(true);
+    setPlay(true);
   }, [keepLooping]);
 
   useEffect(() => {
@@ -292,7 +291,7 @@ export default function LoadingScreen({
     };
   }, [play, keepLooping]);
 
-  if (!decided || !play || !mounted) return null;
+  if (!mounted) return null;
 
   const flipped = phase === "flip" || phase === "holdLogo" || phase === "fadeOut";
 
