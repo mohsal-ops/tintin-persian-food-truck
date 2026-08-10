@@ -2,6 +2,8 @@
 
 import db from "@/db/db";
 import { cache } from "@/lib/handleCaching";
+import { getSetting } from "@/lib/siteSettings";
+import { applyCategoryOrder } from "@/lib/categoryOrder";
 
 export const GetCateringProducts = cache(
   async () => {
@@ -61,12 +63,9 @@ export const GetFeaturedProducts = cache(
 export const GetGategories = cache(
   async () => {
     const types = await db.types.findMany({ orderBy: { createdAt: "asc" } });
-    if (types.length > 1) {
-      // Move the last element to the front
-      const last = types.pop();
-      types.unshift(last!); // non-null assertion since we checked length
-    }
-    return types;
+    // Show categories in the order the owner set in admin (Menu Categories).
+    const orderJson = await getSetting("category_order", "[]");
+    return applyCategoryOrder(types, orderJson);
   },
   ["categories-fun"],
   { tags: ["categories"], revalidate: 60 * 60 * 24 },

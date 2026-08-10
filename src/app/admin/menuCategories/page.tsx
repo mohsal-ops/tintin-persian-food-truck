@@ -1,23 +1,25 @@
 import { Button } from "@/components/ui/button";
 import PageHeader from "../_components/pageHeader";
 import Link from "next/link";
-import { MoreVertical, Plus, Tag } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DeleteItemComp2 } from "../menuItems/_components/productsActions";
+import { Plus, Tag } from "lucide-react";
 import db from "@/db/db";
+import { getSetting } from "@/lib/siteSettings";
+import { applyCategoryOrder } from "@/lib/categoryOrder";
+import CategoryReorderList from "./_components/CategoryReorderList";
 
 export default async function Items() {
-  const categories = await db.types.findMany({
-    select: {
-      id: true,
-      name: true,
-      _count: { select: { items: true } },
-    },
-  });
+  const [rows, orderJson] = await Promise.all([
+    db.types.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { items: true } },
+      },
+    }),
+    getSetting("category_order", "[]"),
+  ]);
+  const categories = applyCategoryOrder(rows, orderJson);
 
   return (
     <div className="lg:flex justify-center">
@@ -27,7 +29,7 @@ export default async function Items() {
           <div>
             <PageHeader>Menu Categories</PageHeader>
             <p className="mt-1 text-sm text-stone-500">
-              {categories.length} categor{categories.length === 1 ? "y" : "ies"}
+              {categories.length} categor{categories.length === 1 ? "y" : "ies"} · use the arrows to set the order shown on your site
             </p>
           </div>
           <Link href="/admin/menuCategories/new">
@@ -40,42 +42,7 @@ export default async function Items() {
         {/* Table card */}
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
           {categories.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-stone-100 bg-stone-50 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    <th className="px-5 py-3">Category</th>
-                    <th className="px-5 py-3">Items</th>
-                    <th className="w-0 px-5 py-3">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {categories.map((cate) => (
-                    <tr key={cate?.id} className="transition-colors hover:bg-stone-50/70">
-                      <td className="px-5 py-3 font-medium text-stone-800">{cate?.name}</td>
-                      <td className="px-5 py-3">
-                        <span className="inline-block rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
-                          {cate._count.items} item{cate._count.items === 1 ? "" : "s"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700">
-                            <span className="sr-only">Actions</span>
-                            <MoreVertical size={16} />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DeleteItemComp2 id={cate?.id} disabled={cate._count.items > 0} />
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CategoryReorderList categories={categories} />
           ) : (
             <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-stone-400">

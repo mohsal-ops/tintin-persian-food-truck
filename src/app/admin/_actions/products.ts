@@ -263,6 +263,21 @@ export async function DeleteCategory(id: string) {
   revalidatePath("/admin/menuCategories");
 }
 
+// Persist the owner-chosen category order (array of category ids, in display
+// order) in the "category_order" SiteSetting — no schema change needed. The
+// website reads this to order categories on the Menu.
+export async function reorderCategories(orderedIds: string[]) {
+  await db.siteSetting.upsert({
+    where: { key: "category_order" },
+    update: { value: JSON.stringify(orderedIds) },
+    create: { key: "category_order", value: JSON.stringify(orderedIds) },
+  });
+  revalidatePath("/");
+  revalidatePath("/Menu");
+  revalidateTag("categories");
+  revalidatePath("/admin/menuCategories");
+}
+
 // ── Sides ────────────────────────────────────────────────────────────────────
 type SideGroupInput = {
   title: string;
