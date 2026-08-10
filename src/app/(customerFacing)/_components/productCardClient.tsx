@@ -75,7 +75,7 @@ export function PopularDishesCardClient({
   };
 
   return (
-    <div className="group flex w-44 shrink-0 flex-col gap-2 p-2 rounded-2xl sm:w-52">
+    <div className="group flex w-44 shrink-0 flex-col gap-2 p-2 rounded-2xl sm:w-48">
       <Card
         className="relative aspect-square w-full overflow-hidden rounded-2xl"
         key={id}
