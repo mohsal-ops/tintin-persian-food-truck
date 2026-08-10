@@ -31,3 +31,21 @@ export async function rejectAdmin(adminId: string) {
 
   revalidatePath("/admin/team");
 }
+
+// Only the FIRST admin (the owner — the earliest-created account) may remove
+// other team members. Guards on the server so it can't be called by anyone else.
+export async function removeAdmin(adminId: string) {
+  const currentAdmin = await getCurrentAdmin();
+  if (!currentAdmin) throw new Error("Unauthorized");
+
+  const firstAdmin = await db.admin.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!firstAdmin || currentAdmin.id !== firstAdmin.id) {
+    throw new Error("Only the owner can remove team members.");
+  }
+  if (adminId === firstAdmin.id) {
+    throw new Error("The owner account can't be removed.");
+  }
+
+  await db.admin.delete({ where: { id: adminId } });
+  revalidatePath("/admin/team");
+}

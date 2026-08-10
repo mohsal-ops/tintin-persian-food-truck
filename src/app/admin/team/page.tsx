@@ -2,6 +2,7 @@ import db from "@/db/db";
 import { getCurrentAdmin } from "@/lib/getCurrentAdmin";
 import { redirect } from "next/navigation";
 import { approveAdmin, rejectAdmin } from "./_actions/teamActions";
+import RemoveAdminButton from "./_components/RemoveAdminButton";
 import { CheckCircle2, XCircle, Clock, ShieldCheck } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -31,6 +32,10 @@ export default async function TeamPage() {
   const admins = await db.admin.findMany({ orderBy: { createdAt: "asc" } });
   const pending = admins.filter((a) => a.status === "PENDING_APPROVAL");
   const others = admins.filter((a) => a.status !== "PENDING_APPROVAL");
+
+  // The first admin (earliest created) is the owner — only they can remove others.
+  const firstAdmin = admins[0];
+  const isOwner = !!firstAdmin && currentAdmin.id === firstAdmin.id;
 
   return (
     <div className="min-h-screen bg-stone-50 p-6 space-y-8">
@@ -103,7 +108,12 @@ export default async function TeamPage() {
                   <p className="text-xs text-stone-400">{admin.email}</p>
                 </div>
               </div>
-              <StatusBadge status={admin.status} />
+              <div className="flex items-center gap-3">
+                <StatusBadge status={admin.status} />
+                {isOwner && admin.status === "APPROVED" && admin.id !== firstAdmin?.id && (
+                  <RemoveAdminButton id={admin.id} name={admin.name} />
+                )}
+              </div>
             </div>
           ))}
         </div>
