@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CartItem } from "generated/prisma";
 import { SecondSectionFeatured } from "./FeaturedSection";
+import LogoDriftBackground from "./LogoDriftBackground";
 import type { ItemWithSides } from "../page";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 
@@ -44,6 +45,7 @@ export function TopSection({
 }) {
   return (
     <div className="flex relative overflow-hidden h-svh w-full sm:w-[85%] flex-col sm:flex-row bg-stone-100 sm:rounded-3xl sm:p-2">
+      <LogoDriftBackground veilClassName="bg-white/80" className="sm:rounded-3xl" />
       <div className="sm:relative absolute z-30 bottom-20 flex flex-col gap-6 items-start h-full justify-end mt-10 md:mb-20 md:w-1/2 p-5 md:p-12">
          <Image
           alt={`${SITE_CONFIG.name} logo`}
@@ -70,7 +72,7 @@ export function TopSection({
         </Link>
       </div>
 
-      <div className="relative w-full md:w-1/2 sm:rounded-3xl overflow-hidden h-svh sm:h-full">
+      <div className="relative z-10 w-full md:w-1/2 sm:rounded-3xl overflow-hidden h-svh sm:h-full">
         <Image
           priority
           fill
