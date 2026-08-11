@@ -99,6 +99,21 @@ export const SITE_CONFIG = {
   secondaryColor: "#1f2937",
   accentColor: "#d97706",
 
+  // Outreach conversion layer (trial popup + read-only dashboard preview).
+  // Turn `enabled` off once a lead converts / the site goes live. `trialLengthDays`
+  // is for MY internal follow-up tracking only — it is never shown to the lead as
+  // a countdown or deadline. `savings` drives the estimated-savings math (default
+  // formula, override per client with real numbers when known).
+  outreach: {
+    enabled: true,
+    fullPrice: 2600,
+    discountedPrice: 1200,
+    discountReason: "review",
+    trialLengthDays: 14,
+    calendlyUrl: "",
+    savings: { estimatedOrdersPerDay: 20, avgOrderValue: 25, commissionPct: 30 },
+  },
+
   // Hours (used for open/closed status) - hour values are 24h local time
   // Daily 11 AM - 12 AM | Fri & Sat till 2 AM
   hours: [
