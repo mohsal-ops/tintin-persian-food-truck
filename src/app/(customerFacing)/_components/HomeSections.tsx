@@ -4,14 +4,6 @@ import mainImg from "@/../public/general/generalPages/mainImage.jpg";
 import Logo from "@/../public/general/logo/logo.png";
 import PageHeader from "./PageHeader";
 import { MdKeyboardArrowRight } from "react-icons/md";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { FaStar } from "react-icons/fa6";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PiPackageFill } from "react-icons/pi";
 import { MdOutlineFamilyRestroom } from "react-icons/md";
 import { BsBagCheckFill } from "react-icons/bs";
