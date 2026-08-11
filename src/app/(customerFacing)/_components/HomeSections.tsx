@@ -25,15 +25,18 @@ import { SecondSectionFeatured } from "./FeaturedSection";
 import LogoDriftBackground from "./LogoDriftBackground";
 import type { ItemWithSides } from "../page";
 import { SITE_CONFIG } from "@/lib/siteConfig";
+import { getLogoUrl } from "@/lib/siteSettings";
 
 export function TopSection({
   heroImage,
   headline,
   subheadline,
+  logoUrl,
 }: {
   heroImage: string;
   headline?: string;
   subheadline?: string;
+  logoUrl?: string;
 }) {
   return (
     <div className="flex relative overflow-hidden h-svh w-full sm:w-[85%] flex-col sm:flex-row bg-stone-100 sm:rounded-3xl sm:p-2">
@@ -41,7 +44,7 @@ export function TopSection({
       <div className="sm:relative absolute z-30 bottom-20 flex flex-col gap-6 items-start h-full justify-center mt-10 md:mb-20 md:w-1/2 p-5 md:p-12">
          <Image
           alt={`${SITE_CONFIG.name} logo`}
-          src={Logo}
+          src={logoUrl || Logo}
           width={120}
           height={120}
           className="h-28 w-28 rounded-full object-cover shadow-lg"

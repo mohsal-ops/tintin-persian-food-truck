@@ -71,7 +71,7 @@ export default function TrialPopup() {
           </h2>
 
           <p className="mt-3 text-sm leading-relaxed text-stone-600">
-            It&apos;s a live trial — yours to explore for free, for as long as you
+            It&apos;s a live trial, yours to explore for free, for as long as you
             like. I&apos;m offering it at a discount right now since I&apos;m still
             building reviews for my own business, so I&apos;d rather get it into a
             few real restaurants&apos; hands than charge full price.
