@@ -45,7 +45,7 @@ export const SITE_CONFIG = {
   trademark: "Tin Tin",
 
   // Intro animation dish: "pizza" | "coffee" (matcha/latte cup) | "burger"
-  loaderStyle: "pizza",
+  loaderStyle: "coffee",
 
   // Main call-to-action button label, used on every "menu" button across the
   // site. Set it to whatever fits: "Order now", "View our menu", "See the menu"…
