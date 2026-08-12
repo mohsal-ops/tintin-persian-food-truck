@@ -9,7 +9,7 @@ export default function PreviewBanner() {
   return (
     <div className="sticky top-0 z-40 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-stone-900 px-4 py-2 text-center text-xs text-white sm:text-sm">
       <span className="font-semibold">
-        You&apos;re previewing your live dashboard — read-only.
+        You&apos;re previewing your live dashboard, read-only.
       </span>
       <span className="text-white/70">
         Everything works; saving is locked until you go live.
