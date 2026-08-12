@@ -20,7 +20,7 @@ export default function LogoDriftBackground({
   className = "",
   tile = 150,
 }: {
-  logoUrl: string | StaticImageData;
+  logoUrl:  StaticImageData;
   veilClassName?: string;
   opacity?: number;
   className?: string;
