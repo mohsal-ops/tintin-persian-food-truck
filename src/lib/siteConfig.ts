@@ -44,8 +44,9 @@ export const SITE_CONFIG = {
   legalName: "Tin Tin Persian Food Truck LLC",
   trademark: "Tin Tin",
 
-  // Admin intro animation: "burger" (fast food) | "coffee" (café) | "pizza" (pizzeria)
-  loaderStyle: "burger",
+  // Intro animation: "ember" (logo assembles from golden embers) | "burger" |
+  // "coffee" | "pizza"
+  loaderStyle: "ember",
 
   // Main call-to-action button label, used on every "menu" button across the
   // site. Set it to whatever fits: "Order now", "View our menu", "See the menu"…

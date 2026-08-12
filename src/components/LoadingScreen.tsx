@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { SITE_CONFIG } from "@/lib/siteConfig";
+import LogoEmber from "@/app/(customerFacing)/_components/LogoEmber";
 
 const SESSION_KEY = "vega:introPlayed";
 
@@ -26,13 +27,16 @@ const cfg = SITE_CONFIG as {
   loaderBackground?: string;
   loaderLogo?: string;
   loaderMessage?: string;
+  loaderStyle?: string;
 };
 
 const NAME = cfg.name;
 const PRIMARY = cfg.primaryColor || "#c85a1e";
 const SECONDARY = cfg.secondaryColor || PRIMARY;
 const ACCENT = cfg.accentColor || cfg.secondaryColor || PRIMARY;
-const BG = cfg.loaderBackground || "#ffffff";
+// "ember" loader = the logo assembles itself from golden embers on a dark ground.
+const EMBER = (cfg.loaderStyle || "") === "ember";
+const BG = EMBER ? "#0b0a09" : cfg.loaderBackground || "#ffffff";
 const LOGO = cfg.loaderLogo || "/logo.png";
 const MESSAGE = cfg.loaderMessage || "";
 
@@ -162,7 +166,15 @@ export default function LoadingScreen({
             />
           )}
 
-          {/* Floating group: particles + logo */}
+          {/* Centerpiece: ember-formation (ember style) or the floating logo */}
+          {EMBER ? (
+            <motion.div
+              exit={{ y: -14, opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } }}
+              style={{ position: "relative", width: "min(440px, 78vw)", aspectRatio: "3 / 2" }}
+            >
+              <LogoEmber variant="form" className="absolute inset-0 h-full w-full" />
+            </motion.div>
+          ) : (
           <motion.div
             animate={reduce ? { y: 0 } : { y: [0, -6, 0] }}
             transition={
@@ -222,6 +234,7 @@ export default function LoadingScreen({
               />
             </motion.div>
           </motion.div>
+          )}
 
           {/* Brand name (falls back to being the hero if no logo renders) */}
           <motion.div
