@@ -106,7 +106,7 @@ export default function TrialPopup() {
             See your dashboard →
           </a>
 
-          {o.calendlyUrl ? (
+          {/* {o.calendlyUrl ? (
             <a
               href={o.calendlyUrl}
               target="_blank"
@@ -115,7 +115,7 @@ export default function TrialPopup() {
             >
               Prefer to talk it through? Book a quick call
             </a>
-          ) : null}
+          ) : null} */}
         </div>
       </div>
     </div>
