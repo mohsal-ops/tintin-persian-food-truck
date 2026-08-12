@@ -31,7 +31,7 @@ export default function DashboardBubble() {
     <a
       href={PREVIEW_ENTER_URL}
       aria-label="Open your dashboard preview"
-      className="fixed bottom-20 right-4 z-[60] inline-flex items-center gap-2 rounded-full border border-[#c85a1e]/30 bg-white/95 px-4 py-3 text-sm font-medium text-[#c85a1e] shadow-lg backdrop-blur transition-colors hover:bg-[#c85a1e] hover:text-white md:bottom-6 md:right-6"
+      className="fixed bottom-20 right-4 z-60 inline-flex items-center gap-2 rounded-full border border-[#c85a1e]/30 bg-[#c85a1e] px-4 py-3 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-[#c85a1e] hover:text-white md:bottom-6 md:right-6"
     >
       <LayoutDashboard size={18} className="shrink-0" />
       <span className="hidden sm:inline">Your dashboard</span>
