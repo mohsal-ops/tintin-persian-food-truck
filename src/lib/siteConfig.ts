@@ -44,9 +44,8 @@ export const SITE_CONFIG = {
   legalName: "Tin Tin Persian Food Truck LLC",
   trademark: "Tin Tin",
 
-  // Intro animation: "ember" (logo assembles from golden embers) | "burger" |
-  // "coffee" | "pizza"
-  loaderStyle: "ember",
+  // Intro animation dish: "pizza" | "coffee" (matcha/latte cup) | "burger"
+  loaderStyle: "pizza",
 
   // Main call-to-action button label, used on every "menu" button across the
   // site. Set it to whatever fits: "Order now", "View our menu", "See the menu"…
@@ -111,7 +110,7 @@ export const SITE_CONFIG = {
     discountedPrice: 1200,
     discountReason: "review",
     trialLengthDays: 14,
-    calendlyUrl: "",
+    calendlyUrl: "https://calendly.com/popdeveloper54/10-minute-meet",
     savings: { estimatedOrdersPerDay: 20, avgOrderValue: 25, commissionPct: 30 },
   },
 

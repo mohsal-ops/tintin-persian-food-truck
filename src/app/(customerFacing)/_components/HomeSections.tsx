@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import mainImg from "@/../public/general/generalPages/mainImage.jpg";
-import LogoEmber from "./LogoEmber";
+import Logo from "@/../public/general/logo/logo.png";
 import PageHeader from "./PageHeader";
 import { MdKeyboardArrowRight } from "react-icons/md";
 import { PiPackageFill } from "react-icons/pi";
@@ -30,6 +30,7 @@ export function TopSection({
   heroImage,
   headline,
   subheadline,
+  logoUrl,
 }: {
   heroImage: string;
   headline?: string;
@@ -40,9 +41,13 @@ export function TopSection({
     <div className="flex relative overflow-hidden h-svh w-full sm:w-[85%] flex-col sm:flex-row bg-stone-300 sm:rounded-3xl sm:p-2">
       <LogoDriftBackground veilClassName="bg-white/80" className="sm:rounded-3xl" />
       <div className="sm:relative absolute z-30 bottom-20 flex flex-col gap-6 items-start h-full justify-center mt-10 md:mb-20 md:w-1/2 p-5 md:p-12">
-        <div className="relative h-28 w-28 overflow-hidden rounded-full bg-[#0b0a09] shadow-lg ring-1 ring-amber-400/30">
-          <LogoEmber variant="ambient" className="absolute inset-0 h-full w-full" />
-        </div>
+         <Image
+          alt={`${SITE_CONFIG.name} logo`}
+          src={logoUrl || Logo}
+          width={120}
+          height={120}
+          className="h-28 w-28 rounded-full object-cover shadow-lg"
+        />
 
         <span className="lg:text-5xl text-white sm:text-black text-4xl font-bold leading-10 lg:leading-15">
           <h1 className="text-brand">
