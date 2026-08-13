@@ -14,10 +14,10 @@ import Logo from "@/../public/general/logo/logo.png";
 
 // opaque background). `tile` sets the cell size, so a bigger value = more space.
 export default function LogoDriftBackground({
-  veilClassName = "bg-black/85",
+  veilClassName = "bg-white/85",
   opacity = 0.9,
   className = "",
-  tile = 150,
+  tile = 200,
 }: {
   veilClassName?: string;
   opacity?: number;
@@ -34,7 +34,7 @@ export default function LogoDriftBackground({
       <div
         className="logo-drift absolute"
         style={{
-          inset: "-25%",
+          inset: "-30%",
           backgroundImage: `url(${Logo.src})`,
           backgroundRepeat: "repeat",
           backgroundSize: `${tile}px ${tile}px`,
