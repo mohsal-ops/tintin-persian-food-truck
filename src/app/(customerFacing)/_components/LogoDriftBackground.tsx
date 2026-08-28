@@ -5,7 +5,7 @@
 // `relative overflow-hidden` container; render page content above it with a
 // higher z-index.
 //
-// It tiles `tileSrc` — a PADDED, transparent version of the logo (the mark
+// It tiles `tileSrc` - a PADDED, transparent version of the logo (the mark
 // centered on empty space) generated at onboarding, e.g.
 // /general/logo/logo-drift.png. The baked-in padding is what creates the even
 // gap between logos, which a raw edge-to-edge logo can't (especially one with an
@@ -14,7 +14,7 @@ import Logo from "@/../public/general/logo/logo.png";
 
 // opaque background). `tile` sets the cell size, so a bigger value = more space.
 export default function LogoDriftBackground({
-  veilClassName = "bg-white/85",
+  veilClassName = "bg-background/85",
   opacity = 0.9,
   className = "",
   tile = 200,

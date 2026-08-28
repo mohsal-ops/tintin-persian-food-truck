@@ -1,9 +1,10 @@
 import db from "@/db/db"
-import { notFound } from "next/navigation"
 import Stripe from "stripe"
 import { StripeCheckoutForm } from "../../_components/StripeCheckoutForm"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { deriveOrderType } from "@/lib/orderType"
+import { getLoyaltySettings } from "@/lib/loyalty"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -17,7 +18,7 @@ export default async function Page({ params }: PageProps) {
 
   if (!id) {
     return (
-      <div className="flex items-center justify-center text-gray-400 w-full h-screen">
+      <div className="flex items-center justify-center text-muted-foreground w-full h-screen">
         A problem occurred
       </div>
     )
@@ -30,7 +31,7 @@ export default async function Page({ params }: PageProps) {
 
   if (!cart) {
     return (
-      <div className="h-svh justify-center w-full flex items-center text-stone-400">
+      <div className="h-svh justify-center w-full flex items-center text-muted-foreground">
         Your cart ID was not found
         <Button variant="link">
           <Link href="/Menu">Try again</Link>
@@ -39,10 +40,16 @@ export default async function Page({ params }: PageProps) {
     )
   }
 
-  const total = cart.items.reduce(
+  const itemsTotal = cart.items.reduce(
     (acc, item) => acc + (item.price ?? 0) * (item.quantity ?? 0),
     0
   )
+
+  // Add the real Uber Direct courier fee only for delivery orders (it's stored on
+  // the cart at address entry). Pickup orders are unaffected.
+  const isDelivery = cart.items[0] ? deriveOrderType(cart.items[0]) === "delivery" : false
+  const deliveryFee = isDelivery ? cart.uberFeeCents ?? 0 : 0
+  const total = itemsTotal + deliveryFee
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: total,
@@ -54,10 +61,15 @@ export default async function Page({ params }: PageProps) {
     throw new Error("Stripe failed to create payment intent")
   }
 
+  const loyalty = await getLoyaltySettings()
+
   return (
     <StripeCheckoutForm
       priceInCents={total}
+      deliveryFeeInCents={deliveryFee}
       clientSecret={paymentIntent.client_secret}
+      loyaltyEnabled={loyalty.enabled}
+      loyaltyConsentText={loyalty.consentText}
     />
   )
 }

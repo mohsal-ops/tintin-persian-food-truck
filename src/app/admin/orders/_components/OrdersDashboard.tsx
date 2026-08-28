@@ -41,6 +41,9 @@ type Order = {
   status: string;
   createdAt: Date;
   items: OrderItem[];
+  uberDeliveryId: string | null;
+  uberStatus: string | null;
+  uberTrackingUrl: string | null;
 };
 
 type Stats = {
@@ -57,6 +60,16 @@ const STATUS_TABS = ["all", "open", "completed", "abandoned"] as const;
 
 export default function OrdersDashboard({ orders, stats }: { orders: Order[]; stats: Stats }) {
   const router = useRouter();
+
+  // Auto-refresh so new orders (and Uber status changes) appear without the
+  // owner reloading. Only polls while the tab is visible.
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const id = setInterval(tick, 25000);
+    return () => clearInterval(id);
+  }, [router]);
   const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<(typeof STATUS_TABS)[number]>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -231,6 +244,20 @@ export default function OrdersDashboard({ orders, stats }: { orders: Order[]; st
                         {first.instructions && (
                           <p className="sm:col-span-2">
                             <span className="font-semibold text-stone-700">Instructions:</span> {first.instructions}
+                          </p>
+                        )}
+                        {order.uberDeliveryId && (
+                          <p className="sm:col-span-2">
+                            <span className="font-semibold text-stone-700">Uber courier:</span>{" "}
+                            <span className="capitalize">{(order.uberStatus ?? "pending").replace(/_/g, " ")}</span>
+                            {order.uberTrackingUrl && (
+                              <>
+                                {" — "}
+                                <a href={order.uberTrackingUrl} target="_blank" rel="noreferrer" className="underline">
+                                  track
+                                </a>
+                              </>
+                            )}
                           </p>
                         )}
                       </>

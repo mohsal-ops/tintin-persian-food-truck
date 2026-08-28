@@ -6,7 +6,7 @@ import { savingsBreakdown, getOutreach, formatUsd } from "@/lib/outreach";
 import PreviewInterestCheckbox from "./PreviewInterestCheckbox";
 
 // Progressive-reveal headline for the preview dashboard: the savings number is
-// visible immediately, but the actual math is one click away — so a 10-second
+// visible immediately, but the actual math is one click away - so a 10-second
 // glance can't absorb the whole case. Carries the single honest "1 new insight"
 // badge, which points here and dismisses on open.
 const INSIGHT_KEY = "vega:previewInsightSeen";
@@ -91,13 +91,13 @@ export default function PreviewSavingsBanner() {
         </div>
       )}
 
-      {/* Primary CTA: appears only once the breakdown is expanded — the moment
+      {/* Primary CTA: appears only once the breakdown is expanded - the moment
           the visitor has seen the strongest case. The smallest possible next
           step: one calm click, no urgency, no scheduling. */}
       {open && (
         <>
           <p className="mt-4 text-sm leading-relaxed text-stone-600">
-            Want this running for real? One click and I&apos;ll take it from here.
+            Want this running for real?
           </p>
           <PreviewInterestCheckbox variant="inline" />
         </>
