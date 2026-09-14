@@ -10,16 +10,23 @@ import { verifyAdminSessionToken } from "@/lib/adminSession";
 const MUTE_COOKIE = "va_mute";
 const MUTE_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
 
-// Emails the owner when a real browser opens the site. Intended for the
-// private pre-launch Vercel link where every visit is the owner or their
-// team. The client only calls this once per browser every couple of hours
-// (see VisitAlert.tsx), and we add an IP backstop here so a reload loop or a
-// script can't spam the mailbox. To turn it off: delete the <VisitAlert />
-// mount in (customerFacing)/layout.tsx, or unset OWNER_ALERT_EMAIL.
+// Emails the AGENCY when a browser opens the site - pre-launch access tracking.
+// Mounted in TWO places: the public customer site (customerFacing/layout.tsx,
+// gated by SITE_CONFIG.trackWebsiteVisits - on by default, set false for live
+// sites like Southern Jerks so real traffic doesn't flood the inbox) AND
+// admin/layout.tsx (preview/dashboard visits by a lead). Always goes to
+// AGENCY_ALERT_EMAIL, never the client's OWNER_ALERT_EMAIL. Pinged at most once
+// per browser every couple of hours (see VisitAlert.tsx), plus an IP backstop
+// here; logged-in owners are muted below.
 export const runtime = "nodejs";
 
+// Agency inbox for access-tracking / lead alerts. Provisioned as AGENCY_ALERT_EMAIL
+// (see the builder's provision.ts); the literal is the guaranteed fallback so this
+// keeps reaching us even on a site whose env var wasn't backfilled.
+const AGENCY_ALERT_EMAIL = process.env.AGENCY_ALERT_EMAIL || "bensa0016@gmail.com";
+
 export async function POST(req: NextRequest) {
-  const to = process.env.OWNER_ALERT_EMAIL || process.env.SMTP_USER;
+  const to = AGENCY_ALERT_EMAIL;
   if (!to) return NextResponse.json({ ok: true });
 
   // Don't alert on the owner's own visits. Skip if they're a logged-in admin,
@@ -41,20 +48,23 @@ export async function POST(req: NextRequest) {
     return res;
   }
 
-  const ip = getClientIp(req);
-  // Backstop: at most one visit alert per IP per 30 minutes.
-  if (isRateLimited(`visit-alert:${ip}`, 1, 30 * 60_000)) {
-    return NextResponse.json({ ok: true, skipped: true });
-  }
-
   let path = "/";
   let referrer = "";
+  let source: "site" | "dashboard" = "site";
   try {
     const body = await req.json();
     if (typeof body?.path === "string") path = body.path;
     if (typeof body?.referrer === "string") referrer = body.referrer;
+    if (body?.source === "dashboard" || body?.source === "site") source = body.source;
   } catch {
     /* body optional */
+  }
+
+  const ip = getClientIp(req);
+  // Backstop: at most one visit alert per IP per 30 minutes, PER source - so a
+  // dashboard/preview visit never rate-limits away the website's alert.
+  if (isRateLimited(`visit-alert:${source}:${ip}`, 1, 30 * 60_000)) {
+    return NextResponse.json({ ok: true, skipped: true });
   }
 
   const ua = req.headers.get("user-agent") ?? "unknown";
@@ -64,13 +74,19 @@ export async function POST(req: NextRequest) {
     timeStyle: "short",
   });
 
+  const where = source === "dashboard" ? "dashboard" : "website";
+  const subject =
+    source === "dashboard"
+      ? `Dashboard visit: ${SITE_CONFIG.name}`
+      : `Website visit: ${SITE_CONFIG.name}`;
+
   try {
     await sendMail({
       to,
-      subject: `Website visit: ${SITE_CONFIG.name}`,
+      subject,
       html: `
         <div style="font-family:system-ui,Segoe UI,sans-serif;font-size:15px;color:#1c1917">
-          <h2 style="margin:0 0 12px">Someone opened the ${SITE_CONFIG.name} website</h2>
+          <h2 style="margin:0 0 12px">Someone opened the ${SITE_CONFIG.name} ${where}</h2>
           <table style="border-collapse:collapse">
             <tr><td style="padding:4px 14px 4px 0;color:#78716c">Time</td><td>${when} (${SITE_CONFIG.timezone})</td></tr>
             <tr><td style="padding:4px 14px 4px 0;color:#78716c">Page</td><td>${path}</td></tr>
@@ -79,7 +95,7 @@ export async function POST(req: NextRequest) {
             <tr><td style="padding:4px 14px 4px 0;color:#78716c">Device</td><td style="max-width:420px">${ua}</td></tr>
           </table>
           <p style="margin-top:16px;color:#78716c;font-size:13px">
-            You're receiving this because website visit alerts are on (private pre-launch link).
+            You're receiving this because ${where} visit alerts are on.
             At most one email per visitor every couple of hours.
           </p>
         </div>`,

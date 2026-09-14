@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { Label } from "@radix-ui/react-label";
 import { Item } from "generated/prisma";
-import { Plus, ImageIcon } from "lucide-react";
+import { Plus, ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 
@@ -37,6 +37,8 @@ export default function ProductForm({
   const [price, setPrice] = useState<string>(item ? (item.priceInCents / 100).toFixed(2) : "");
   const [isCaterable, setIsCaterable] = useState<boolean>(item?.isCaterable ?? false);
   const [preview, setPreview] = useState<string | null>(item?.image || null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const hiddenCategoryRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -107,26 +109,51 @@ export default function ProductForm({
           <div className="space-y-1.5">
             <Label className={label}>Photo</Label>
             <div className="flex items-center gap-4">
-              <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+              <div className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
                 {preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={preview} alt="preview" className="h-full w-full object-cover" />
                 ) : (
                   <ImageIcon className="text-stone-300" />
                 )}
+                {preview && (
+                  <button
+                    type="button"
+                    aria-label="Remove photo"
+                    title="Remove photo"
+                    onClick={() => {
+                      setPreview(null);
+                      setRemoveImage(true);
+                      if (fileRef.current) fileRef.current.value = "";
+                    }}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white shadow-sm transition hover:bg-black/80"
+                  >
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                )}
               </div>
-              <Input
-                type="file"
-                id="image"
-                name="image"
-                accept="image/*"
-                className="max-w-xs"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  setPreview(f ? URL.createObjectURL(f) : item?.image || null);
-                }}
-              />
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  id="image"
+                  name="image"
+                  ref={fileRef}
+                  accept="image/*"
+                  className="max-w-xs"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setRemoveImage(false);
+                      setPreview(URL.createObjectURL(f));
+                    } else {
+                      setPreview(removeImage ? null : item?.image || null);
+                    }
+                  }}
+                />
+              </div>
             </div>
+            {/* Tells the server to clear the saved photo (leave it empty). */}
+            <input type="hidden" name="removeImage" value={removeImage ? "true" : ""} />
           </div>
 
           <div className="space-y-1.5">
@@ -135,7 +162,7 @@ export default function ProductForm({
               <SelectTrigger className="w-56">
                 <SelectValue placeholder="Choose a category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="admin-shell">
                 {types && types.length > 0 ? (
                   types.map((type: any) => (
                     <SelectItem key={type.id} value={type.id} className="hover:cursor-pointer">

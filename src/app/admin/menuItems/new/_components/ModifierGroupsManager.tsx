@@ -193,7 +193,7 @@ export default function ModifierGroupsManager({
 
       {groups.length === 0 && (
         <p className="mt-4 rounded-xl bg-stone-50 px-4 py-6 text-center text-sm text-stone-500">
-          No modifier groups yet. Add one — e.g. a required &ldquo;Choose a sauce&rdquo; or optional
+          No modifier groups yet. Add one - e.g. a required &ldquo;Choose a sauce&rdquo; or optional
           &ldquo;Add extras&rdquo;.
         </p>
       )}
@@ -233,7 +233,7 @@ export default function ModifierGroupsManager({
                 <SelectTrigger className="w-[170px] bg-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="admin-shell">
                   {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
                     <SelectItem key={k} value={k}>
                       {KIND_LABEL[k]}
@@ -320,7 +320,7 @@ export default function ModifierGroupsManager({
                     <SelectTrigger className="w-[150px] bg-white text-xs">
                       <SelectValue placeholder="Link item" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="admin-shell">
                       <SelectItem value="none">No linked item</SelectItem>
                       {allItems.map((it) => (
                         <SelectItem key={it.id} value={it.id}>

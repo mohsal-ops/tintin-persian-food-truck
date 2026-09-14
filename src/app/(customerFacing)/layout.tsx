@@ -5,11 +5,13 @@ import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { SITE_CONFIG } from "@/lib/siteConfig";
-import { getLogoUrl } from "@/lib/siteSettings";
 import VisitAlert from "./_components/VisitAlert";
+import { getLogoUrl } from "@/lib/siteSettings";
+import { getLoyaltySettings, loyaltyIncentive } from "@/lib/loyalty";
 import LoadingScreen from "@/components/LoadingScreen";
 import TrialPopup from "./_components/TrialPopup";
 import DashboardBubble from "./_components/DashboardBubble";
+import LoyaltyPopup from "@/components/LoyaltyPopup";
 
 export default async function Customerlayout({
   children,
@@ -19,14 +21,27 @@ export default async function Customerlayout({
   const dynamic = "force-dynamic";
   const cartId = (await cookies()).get("cart_id")?.value ?? null;
   const logoUrl = await getLogoUrl();
+  const loyalty = await getLoyaltySettings();
 
   return (
     <SidebarProvider>
       {/* One-time branded intro on the public site (once per browser session) */}
       <LoadingScreen />
-      <VisitAlert />
+      {/* Website visit alert (emails the agency when someone opens the public
+          site). On by default; a client can turn it off by setting
+          SITE_CONFIG.trackWebsiteVisits = false (e.g. once they're live and it
+          would just be customer noise). Dashboard/preview visits are tracked
+          separately in admin/layout.tsx. */}
+      {(SITE_CONFIG as { trackWebsiteVisits?: boolean }).trackWebsiteVisits !== false && <VisitAlert source="site" />}
       <TrialPopup />
       <DashboardBubble />
+      <LoyaltyPopup
+        loyaltyEnabled={loyalty.enabled}
+        popupEnabled={loyalty.popupEnabled}
+        consentText={loyalty.consentText}
+        incentive={loyaltyIncentive()}
+        name={SITE_CONFIG.name}
+      />
       <main className="flex relative flex-col w-full  pb- ">
         <div className="fixed top-0 left-0 right-0 z-50">
           <TopNavBar initialCartId={cartId} logoUrl={logoUrl} />

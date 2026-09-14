@@ -5,7 +5,9 @@
 // no libraries.
 //
 // The dish is chosen by SITE_CONFIG.loaderStyle so one template serves every
-// client: "burger" (fast food), "coffee" (a matcha / latte cup), or "pizza".
+// client: "burger" (fast food), "coffee" (matcha / latte cup), "pizza" (the
+// brand logo bouncing up and down - great for pizzerias whose logo IS the
+// icon), "bowl" (rice bowl), or "grill" (BBQ / smokehouse / hot chicken).
 // Unknown values fall back to "burger" so template-sync is always safe.
 //
 // Plays ONCE PER BROWSER SESSION (sessionStorage) - refreshing or moving
@@ -13,10 +15,11 @@
 // always plays so it's easy to iterate).
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 
 type Phase = "assemble" | "hold" | "fadeOut";
-type Variant = "burger" | "coffee" | "pizza" | "bowl";
+type Variant = "burger" | "coffee" | "pizza" | "bowl" | "grill";
 
 const SESSION_KEY = "vega:introPlayed";
 const NAME = SITE_CONFIG.name;
@@ -24,10 +27,15 @@ const TAGLINE = (SITE_CONFIG as { tagline?: string }).tagline || "";
 // Brand-tinted shimmer for the wordmark.
 const BRAND = (SITE_CONFIG as { primaryColor?: string }).primaryColor || "#eab308";
 const BRAND_DEEP = (SITE_CONFIG as { accentColor?: string }).accentColor || "#b8860b";
+// The "pizza" style shows the brand logo itself, bouncing. Each client keeps its
+// own /logo.png (blocklisted from sync); loaderLogo can override it if ever set.
+const LOGO = (SITE_CONFIG as { loaderLogo?: string }).loaderLogo || "/logo.png";
 
 function resolveVariant(override?: Variant): Variant {
   const raw = override ?? (SITE_CONFIG as { loaderStyle?: string }).loaderStyle;
-  return raw === "coffee" || raw === "pizza" || raw === "burger" || raw === "bowl" ? raw : "burger";
+  return raw === "coffee" || raw === "pizza" || raw === "burger" || raw === "bowl" || raw === "grill"
+    ? raw
+    : "burger";
 }
 
 const ACCENTS: Record<Variant, { fill: string; shine: string }> = {
@@ -35,6 +43,7 @@ const ACCENTS: Record<Variant, { fill: string; shine: string }> = {
   coffee: { fill: "#4c8c5a", shine: "#7bb08a" },
   pizza: { fill: "#d94b2b", shine: "#e8834f" },
   bowl: { fill: "#f0dcae", shine: "#e9c78a" },
+  grill: { fill: "#e8621f", shine: "#f7b733" },
 };
 
 // Shine lines radiating OUTWARD from around the dish (SVG uses overflow:visible).
@@ -140,38 +149,41 @@ function FrontArt({ variant, phase }: { variant: Variant; phase: Phase }) {
     );
   }
 
-  if (variant === "pizza") {
+  if (variant === "grill") {
     return (
-      <svg width="90" viewBox="0 0 120 100" fill="none" style={{ overflow: "visible" }}>
+      <svg width="94" viewBox="0 0 120 100" fill="none" style={{ overflow: "visible" }}>
         {shine}
-        <g style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-          <circle cx={60} cy={50} r={28} fill={accent.fill}
-            style={{ ...svgLayer, animation: phase === "assemble" ? "seedPop 0.42s cubic-bezier(0.34,1.56,0.64,1) 120ms both" : "none" }} />
-          <circle cx={60} cy={50} r={23} fill="none" stroke="#fff2d6" strokeWidth={2} opacity={0.55}
-            style={{ ...svgLayer, animation: phase === "assemble" ? "seedPop 0.42s ease 240ms both" : "none" }} />
-          <circle cx={60} cy={50} r={32} fill="none" stroke="#121212" strokeWidth={3.2}
-            strokeDasharray={210}
-            style={{ ...svgLayer, animation: phase === "assemble" ? "pizzaDraw 0.6s ease 40ms both" : "none" }} />
-          {[
-            { cx: 60, cy: 34, d: 360 },
-            { cx: 74, cy: 45, d: 410 },
-            { cx: 70, cy: 62, d: 460 },
-            { cx: 54, cy: 65, d: 510 },
-            { cx: 45, cy: 52, d: 560 },
-            { cx: 52, cy: 40, d: 610 },
-          ].map((p, i) => (
-            <circle key={i} cx={p.cx} cy={p.cy} r={4} fill="#b5301a" stroke="#7d1f12" strokeWidth={0.8}
-              style={{ ...svgLayer, animation: popAnim(phase, p.d) }} />
-          ))}
-          {[
-            { cx: 66, cy: 53, d: 440 },
-            { cx: 50, cy: 57, d: 500 },
-            { cx: 64, cy: 42, d: 560 },
-          ].map((b, i) => (
-            <ellipse key={`b${i}`} cx={b.cx} cy={b.cy} rx={2.6} ry={1.5} fill="#3f7d4e"
-              style={{ ...svgLayer, animation: popAnim(phase, b.d) }} />
-          ))}
+        {/* Smoke rising off the grill */}
+        {["M 50,32 Q 46,25 50,19 Q 54,12 50,6", "M 60,31 Q 56,23 60,16 Q 64,8 60,2", "M 70,32 Q 66,26 70,20 Q 74,13 70,7"].map((d, i) => (
+          <path key={i} d={d} stroke="#121212" strokeWidth={1.5} fill="none" strokeLinecap="round"
+            style={{ opacity: 0.4, animation: `steam 2.1s ease-in-out ${500 + i * 260}ms infinite` }} />
+        ))}
+        {/* Legs */}
+        <g {...outline} style={{ ...svgLayer, animation: layerAnim(phase, 0) }}>
+          <path d="M 40,62 L 32,86" />
+          <path d="M 80,62 L 88,86" />
+          <path d="M 60,64 L 60,88" />
         </g>
+        {/* Charcoal basin */}
+        <path d="M 32,56 Q 60,82 88,56" {...outline} style={{ ...svgLayer, animation: layerAnim(phase, 100) }} />
+        {/* Cooking-grate rim */}
+        <ellipse cx={60} cy={56} rx={29} ry={5.5} {...outline} style={{ ...svgLayer, animation: layerAnim(phase, 180) }} />
+        {/* Grate bars */}
+        <g stroke="#121212" strokeWidth={1.6} strokeLinecap="round" style={{ ...svgLayer, animation: layerAnim(phase, 240) }}>
+          <line x1={39} y1={54.5} x2={81} y2={54.5} />
+          <line x1={35} y1={56.5} x2={85} y2={56.5} />
+          <line x1={39} y1={58.5} x2={81} y2={58.5} />
+        </g>
+        {/* Flames licking up through the grate */}
+        <path d="M 57,53 C 51,46 58,41 55,33 C 61,37 60,45 64,41 C 68,47 64,53 57,53 Z"
+          fill={accent.fill} stroke="#121212" strokeWidth={1.3} strokeLinejoin="round"
+          style={{ ...svgLayer, animation: popAnim(phase, 360) }} />
+        <path d="M 68,53 C 64,48 69,44 67,38 C 71,41 70,46 73,44 C 76,48 72,53 68,53 Z"
+          fill={accent.shine} stroke="#121212" strokeWidth={1.1} strokeLinejoin="round"
+          style={{ ...svgLayer, animation: popAnim(phase, 460) }} />
+        <path d="M 47,53 C 44,49 48,45 47,40 C 50,43 49,47 52,45 C 54,49 51,53 47,53 Z"
+          fill={accent.fill} stroke="#121212" strokeWidth={1.1} strokeLinejoin="round"
+          style={{ ...svgLayer, animation: popAnim(phase, 540) }} />
       </svg>
     );
   }
@@ -306,10 +318,11 @@ export default function LoadingScreen({
       <style>{`
         @keyframes layerIn { 0%{opacity:0;transform:translateY(-42px) scale(0.4)} 70%{opacity:1} 100%{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes seedPop { from{opacity:0;transform:scale(0)} to{opacity:1;transform:scale(1)} }
-        @keyframes pizzaDraw { from{stroke-dashoffset:210} to{stroke-dashoffset:0} }
         @keyframes shineOut { 0%{stroke-dashoffset:20;opacity:0.2} 45%{stroke-dashoffset:0;opacity:1} 100%{stroke-dashoffset:-20;opacity:0} }
         @keyframes steam { 0%{opacity:0;transform:translateY(4px)} 40%{opacity:0.55} 100%{opacity:0;transform:translateY(-8px)} }
         @keyframes floatBob { 0%,100%{transform:translateY(4px)} 50%{transform:translateY(-6px)} }
+        @keyframes logoIn { 0%{opacity:0;transform:scale(0.6)} 60%{opacity:1;transform:scale(1.08)} 100%{opacity:1;transform:scale(1)} }
+        @keyframes logoBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
         @keyframes wordShimmer { 0%{background-position:150% 0} 100%{background-position:-150% 0} }
         @keyframes screenFadeOut { from{opacity:1} to{opacity:0} }
         @keyframes cardIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
@@ -347,20 +360,50 @@ export default function LoadingScreen({
           }}
         />
 
-        {/* Dish - assembles, then gently floats up and down */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 120,
-            height: 96,
-            animation: floating && phase !== "assemble" ? "floatBob 3s ease-in-out infinite" : undefined,
-            filter: `drop-shadow(0 8px 16px ${BRAND}33)`,
-          }}
-        >
-          <FrontArt variant={dish} phase={phase} />
-        </div>
+        {/* "pizza" style = the brand logo itself, bouncing up and down. Every
+            other style renders its line-art dish, which assembles then floats. */}
+        {dish === "pizza" ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 120,
+              height: 112,
+              animation: floating && phase !== "assemble" ? "logoBounce 1.5s ease-in-out infinite" : undefined,
+              filter: `drop-shadow(0 10px 18px ${BRAND}40)`,
+            }}
+          >
+            <Image
+              src={LOGO}
+              alt={NAME}
+              width={104}
+              height={104}
+              priority
+              className="select-none"
+              style={{
+                width: 104,
+                height: 104,
+                objectFit: "contain",
+                animation: phase === "assemble" ? "logoIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both" : undefined,
+              }}
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 120,
+              height: 96,
+              animation: floating && phase !== "assemble" ? "floatBob 3s ease-in-out infinite" : undefined,
+              filter: `drop-shadow(0 8px 16px ${BRAND}33)`,
+            }}
+          >
+            <FrontArt variant={dish} phase={phase} />
+          </div>
+        )}
 
         {/* Noticeable, shimmering brand wordmark */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: "cardIn 0.6s ease 0.3s both" }}>
