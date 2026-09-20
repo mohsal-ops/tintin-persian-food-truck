@@ -5,8 +5,9 @@ import db from "@/db/db";
 import { revalidatePath } from "next/cache";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 import { deriveOrderType } from "@/lib/orderType";
+import { PAID_STATUSES, isPaid } from "@/lib/orderStatus";
 
-export type CartOrderStatus = "open" | "completed" | "abandoned";
+export type CartOrderStatus = "open" | "new" | "completed" | "abandoned";
 
 export async function getOrdersWithItems(status?: CartOrderStatus) {
   const carts = await db.cart.findMany({
@@ -52,30 +53,54 @@ function itemTotalCents(item: { price: number | null; quantity: number | null })
   return (item.price ?? 0) * (item.quantity ?? 1);
 }
 
+// Lightweight "today" numbers for the persistent admin live bar. Same source and
+// definitions as getOrderStats (Cart + isPaid), just without the heavy
+// most-ordered aggregation - so it's cheap to run on every admin page.
+export async function getTodaySummary() {
+  const { start, end } = getTodayBoundsUTC();
+  const carts = await db.cart.findMany({
+    where: { createdAt: { gte: start, lt: end } },
+    include: { items: true },
+  });
+  const orders = carts.filter((c) => c.items.length > 0);
+  const paid = orders.filter((c) => isPaid(c.status));
+  const salesTodayCents = paid.reduce(
+    (sum, c) => sum + c.items.reduce((s, i) => s + itemTotalCents(i), 0),
+    0,
+  );
+  return {
+    salesTodayCents,
+    ordersToday: orders.length, // matches the Sales page's "Orders Today"
+    newOrders: orders.filter((c) => c.status === "new").length, // unfulfilled
+  };
+}
+
 export async function getOrderStats() {
   const { start, end } = getTodayBoundsUTC();
 
-  const [todaysCarts, completedCarts] = await Promise.all([
+  const [todaysCarts, paidCarts] = await Promise.all([
     db.cart.findMany({
       where: { createdAt: { gte: start, lt: end } },
       include: { items: true },
     }),
+    // Every real (paid) order ever - "new" (awaiting kitchen) + "completed".
     db.cart.findMany({
-      where: { status: "completed" },
+      where: { status: { in: [...PAID_STATUSES] } },
       include: { items: true },
     }),
   ]);
 
   const todaysOrders = todaysCarts.filter((c) => c.items.length > 0);
-  const todaysCompleted = todaysOrders.filter((c) => c.status === "completed");
+  // Revenue counts paid orders (a "new" order is already paid).
+  const todaysPaid = todaysOrders.filter((c) => isPaid(c.status));
 
   const totalOrdersToday = todaysOrders.length;
-  const revenueTodayCents = todaysCompleted.reduce(
+  const revenueTodayCents = todaysPaid.reduce(
     (sum, cart) => sum + cart.items.reduce((s, item) => s + itemTotalCents(item), 0),
     0,
   );
   const averageOrderValueCents =
-    todaysCompleted.length > 0 ? Math.round(revenueTodayCents / todaysCompleted.length) : 0;
+    todaysPaid.length > 0 ? Math.round(revenueTodayCents / todaysPaid.length) : 0;
 
   // Pickup vs delivery split, based on all real (non-empty) orders today.
   let pickupCount = 0;
@@ -99,9 +124,9 @@ export async function getOrderStats() {
     ordersByHour[hour % 24]++;
   }
 
-  // Most ordered item, aggregated across every completed order ever placed.
+  // Most ordered item, aggregated across every paid order ever placed.
   const productCounts = new Map<string, { name: string; count: number }>();
-  for (const cart of completedCarts) {
+  for (const cart of paidCarts) {
     for (const item of cart.items) {
       if (!item.productId || !item.name) continue;
       const existing = productCounts.get(item.productId);
