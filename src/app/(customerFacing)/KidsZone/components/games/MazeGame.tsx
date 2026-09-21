@@ -1,20 +1,15 @@
 import { useState, useEffect, useCallback, useRef, JSX } from "react";
-import { StaticImageData } from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, Trophy, Timer, Shuffle } from "lucide-react";
 import { mazeSettings, generateMaze, type Difficulty, type MazeCell } from "./mazeConfigs";
 import DifficultySelector from "./DifficultySelector";
-import foodChicken from "public/games/food-chicken-fries.jpg";
-import foodTenders from "public/games/food-tenders-fries.jpg";
+import { kidsTheme } from "@/lib/kidsTheme";
 
 type Position = { x: number; y: number };
 
-const goalImages: Record<Difficulty, StaticImageData> = {
-  easy: foodChicken,
-  medium: foodTenders,
-  hard: foodChicken,
-  expert: foodTenders,
-};
+// The maze finish line = the restaurant's own food emoji (burger, pizza, coffee,
+// etc.), themed by place type - see src/lib/kidsTheme.ts.
+const goalEmoji = kidsTheme().emojis[0];
 
 const MazeGame = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
@@ -125,12 +120,12 @@ const MazeGame = () => {
         <div className="flex gap-4 text-center">
           <div className="bg-secondary/50 rounded-xl px-4 py-2">
             <p className="text-xs text-muted-foreground">Moves</p>
-            <p className="text-xl font-display text-primary">{moves}</p>
+            <p className="text-xl font-display text-brand">{moves}</p>
           </div>
           {timerMode && (
             <div className={`bg-secondary/50 rounded-xl px-4 py-2 ${timeLeft <= 10 ? "animate-pulse" : ""}`}>
               <p className="text-xs text-muted-foreground">Time</p>
-              <p className={`text-xl font-display ${timeLeft <= 10 ? "text-ketchup" : "text-primary"}`}>{formatTime(timeLeft)}</p>
+              <p className={`text-xl font-display ${timeLeft <= 10 ? "text-ketchup" : "text-brand"}`}>{formatTime(timeLeft)}</p>
             </div>
           )}
         </div>
@@ -144,7 +139,7 @@ const MazeGame = () => {
                   {cell.isGoal && (
                     <>
                       <rect x={c * config.cellSize + config.wallThickness / 2} y={r * config.cellSize + config.wallThickness / 2} width={config.cellSize} height={config.cellSize} fill="hsl(var(--pickle) / 0.1)" />
-                      <image  href={goalImages[difficulty].src} x={c * config.cellSize + config.wallThickness / 2 + 2} y={r * config.cellSize + config.wallThickness / 2 + 2} width={config.cellSize - 4} height={config.cellSize - 4} preserveAspectRatio="xMidYMid slice" clipPath="inset(0 round 4px)" />
+                      <text x={c * config.cellSize + config.wallThickness / 2 + config.cellSize / 2} y={r * config.cellSize + config.wallThickness / 2 + config.cellSize / 2} textAnchor="middle" dominantBaseline="central" fontSize={config.cellSize * 0.68}>{goalEmoji}</text>
                     </>
                   )}
                 </g>
@@ -155,10 +150,10 @@ const MazeGame = () => {
                 const x = c * config.cellSize + config.wallThickness / 2;
                 const y = r * config.cellSize + config.wallThickness / 2;
                 const lines: JSX.Element[] = [];
-                if (cell.top) lines.push(<line key={`${r}-${c}-t`} x1={x} y1={y} x2={x + config.cellSize} y2={y} stroke="hsl(var(--primary))" strokeWidth={config.wallThickness} strokeLinecap="round" />);
-                if (cell.left) lines.push(<line key={`${r}-${c}-l`} x1={x} y1={y} x2={x} y2={y + config.cellSize} stroke="hsl(var(--primary))" strokeWidth={config.wallThickness} strokeLinecap="round" />);
-                if (cell.right) lines.push(<line key={`${r}-${c}-r`} x1={x + config.cellSize} y1={y} x2={x + config.cellSize} y2={y + config.cellSize} stroke="hsl(var(--primary))" strokeWidth={config.wallThickness} strokeLinecap="round" />);
-                if (cell.bottom) lines.push(<line key={`${r}-${c}-b`} x1={x} y1={y + config.cellSize} x2={x + config.cellSize} y2={y + config.cellSize} stroke="hsl(var(--primary))" strokeWidth={config.wallThickness} strokeLinecap="round" />);
+                if (cell.top) lines.push(<line key={`${r}-${c}-t`} x1={x} y1={y} x2={x + config.cellSize} y2={y} stroke="var(--brand)" strokeWidth={config.wallThickness} strokeLinecap="round" />);
+                if (cell.left) lines.push(<line key={`${r}-${c}-l`} x1={x} y1={y} x2={x} y2={y + config.cellSize} stroke="var(--brand)" strokeWidth={config.wallThickness} strokeLinecap="round" />);
+                if (cell.right) lines.push(<line key={`${r}-${c}-r`} x1={x + config.cellSize} y1={y} x2={x + config.cellSize} y2={y + config.cellSize} stroke="var(--brand)" strokeWidth={config.wallThickness} strokeLinecap="round" />);
+                if (cell.bottom) lines.push(<line key={`${r}-${c}-b`} x1={x} y1={y + config.cellSize} x2={x + config.cellSize} y2={y + config.cellSize} stroke="var(--brand)" strokeWidth={config.wallThickness} strokeLinecap="round" />);
                 return lines;
               })
             )}
