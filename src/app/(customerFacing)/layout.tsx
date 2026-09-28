@@ -1,5 +1,9 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TopNavBar } from "./_components/navBar";
+import { SmashNav } from "./_components/themes/SmashNav";
+import { DinerNav } from "./_components/themes/DinerNav";
+import { ElegantNav } from "./_components/themes/ElegantNav";
+import { getActiveTheme } from "@/lib/themes/active";
 import { Footer } from "./_components/Footer";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
@@ -22,6 +26,7 @@ export default async function Customerlayout({
   const cartId = (await cookies()).get("cart_id")?.value ?? null;
   const logoUrl = await getLogoUrl();
   const loyalty = await getLoyaltySettings();
+  const theme = await getActiveTheme();
 
   return (
     <SidebarProvider>
@@ -42,9 +47,20 @@ export default async function Customerlayout({
         incentive={loyaltyIncentive()}
         name={SITE_CONFIG.name}
       />
-      <main className="flex relative flex-col w-full  pb- ">
+      {/* `theme-surface` scopes every per-theme signature treatment
+          (theme-components.css) to the PUBLIC site only — the admin dashboard
+          has its own layout without this class, so it never picks them up. */}
+      <main className="theme-surface flex relative flex-col w-full  pb- ">
         <div className="fixed top-0 left-0 right-0 z-50">
-          <TopNavBar initialCartId={cartId} logoUrl={logoUrl} />
+          {theme === "smash-bold" ? (
+            <SmashNav initialCartId={cartId} logoUrl={logoUrl} />
+          ) : theme === "diner-classic" ? (
+            <DinerNav initialCartId={cartId} logoUrl={logoUrl} />
+          ) : theme === "refined-elegant" ? (
+            <ElegantNav initialCartId={cartId} />
+          ) : (
+            <TopNavBar initialCartId={cartId} logoUrl={logoUrl} />
+          )}
         </div>
         <div id="main-content" className="flex flex-col md:items-center   ">{children}</div>
         <div className="flex flex-col w-full items-center ">

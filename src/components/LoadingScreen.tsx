@@ -1,14 +1,18 @@
 "use client";
-// Intro loader. A small line-art dish assembles from its parts, bursts a shine
-// outward, then gently floats up and down while a saffron wordmark shimmers
-// beneath it. Loops until the page finishes loading, then fades out. Pure CSS,
-// no libraries.
-//
-// The dish is chosen by SITE_CONFIG.loaderStyle so one template serves every
-// client: "burger" (fast food), "coffee" (matcha / latte cup), "pizza" (the
-// brand logo bouncing up and down - great for pizzerias whose logo IS the
-// icon), "bowl" (rice bowl), or "grill" (BBQ / smokehouse / hot chicken).
-// Unknown values fall back to "burger" so template-sync is always safe.
+// Intro loader. A real-time 3D "clay toy" scene (three.js, lazy-loaded) plays a
+// looping choreography for the restaurant's food type while a shimmering brand
+// wordmark sits beneath it, then fades out once the page has loaded:
+//   burger - layers drop + squash into a stack, hop-spin, burst, rebuild
+//   pizza  - slices spin in, toppings rain, cheese-pull slice, dough toss
+//   coffee - cup lands, a stream pours & fills it, latte art blooms, steam
+//            (matcha green when the brand reads matcha/tea, latte otherwise)
+//   bowl   - rice pours in grain by grain, toppings drop, chopsticks, fountain
+//   grill  - coals ignite, flames, glazed drumsticks sizzle + flip, embers
+//   logo   - the brand logo itself bouncing (the old "pizza" style)
+// While the 3D chunk downloads (and on devices without WebGL) the older line-art
+// dish shows instead, so there is never an empty frame. Chosen by
+// SITE_CONFIG.loaderStyle; unknown values fall back to "burger" so template-sync
+// is always safe.
 //
 // Plays ONCE PER BROWSER SESSION (sessionStorage) - refreshing or moving
 // between pages in the same session won't replay it (production only; in dev it
@@ -19,7 +23,7 @@ import Image from "next/image";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 
 type Phase = "assemble" | "hold" | "fadeOut";
-type Variant = "burger" | "coffee" | "pizza" | "bowl" | "grill";
+type Variant = "burger" | "coffee" | "pizza" | "bowl" | "grill" | "logo";
 
 const SESSION_KEY = "vega:introPlayed";
 const NAME = SITE_CONFIG.name;
@@ -27,13 +31,13 @@ const TAGLINE = (SITE_CONFIG as { tagline?: string }).tagline || "";
 // Brand-tinted shimmer for the wordmark.
 const BRAND = (SITE_CONFIG as { primaryColor?: string }).primaryColor || "#eab308";
 const BRAND_DEEP = (SITE_CONFIG as { accentColor?: string }).accentColor || "#b8860b";
-// The "pizza" style shows the brand logo itself, bouncing. Each client keeps its
+// The "logo" style shows the brand logo itself, bouncing. Each client keeps its
 // own /logo.png (blocklisted from sync); loaderLogo can override it if ever set.
 const LOGO = (SITE_CONFIG as { loaderLogo?: string }).loaderLogo || "/logo.png";
 
 function resolveVariant(override?: Variant): Variant {
   const raw = override ?? (SITE_CONFIG as { loaderStyle?: string }).loaderStyle;
-  return raw === "coffee" || raw === "pizza" || raw === "burger" || raw === "bowl" || raw === "grill"
+  return raw === "coffee" || raw === "pizza" || raw === "burger" || raw === "bowl" || raw === "grill" || raw === "logo"
     ? raw
     : "burger";
 }
@@ -44,7 +48,15 @@ const ACCENTS: Record<Variant, { fill: string; shine: string }> = {
   pizza: { fill: "#d94b2b", shine: "#e8834f" },
   bowl: { fill: "#f0dcae", shine: "#e9c78a" },
   grill: { fill: "#e8621f", shine: "#f7b733" },
+  logo: { fill: "#FFB800", shine: "#FFB800" },
 };
+
+// Start downloading the 3D engine the moment this module loads (not when the
+// intro starts) so the first 3D frame is ready almost immediately.
+const enginePromise = typeof window !== "undefined" ? import("./loader3d/engine").catch(() => null) : null;
+
+// What the 3D coffee scene reads to pick matcha vs latte.
+const FLAVOR = [NAME, TAGLINE, ...(((SITE_CONFIG as { cuisines?: string[] }).cuisines) ?? [])].join(" ");
 
 // Shine lines radiating OUTWARD from around the dish (SVG uses overflow:visible).
 const SHINE = [
@@ -233,6 +245,16 @@ export default function LoadingScreen({
   const [phase, setPhase] = useState<Phase>("assemble");
   const [mounted, setMounted] = useState(true);
   const reduce = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ready3d, setReady3d] = useState(false);
+  // The old line-art is ONLY a failure fallback (no WebGL / chunk error / no
+  // frame after 5s). It used to pop in after 1.2s on slow loads and then get
+  // swapped for the 3D scene — two animations back to back. Now a slow download
+  // just holds the halo + wordmark until the 3D scene draws its first frame.
+  const [showFallback, setShowFallback] = useState(false);
+  const artSettled = useRef(false); // 3D drew, or we gave up and showed line-art
+  const onArtSettled = useRef<() => void>(() => {});
+  const use3d = dish !== "logo";
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const decidedOnce = useRef(false);
@@ -261,6 +283,46 @@ export default function LoadingScreen({
     setPlay(true);
   }, [keepLooping]);
 
+  // Lazy-load + mount the 3D scene. Any failure (no WebGL, chunk error) just
+  // leaves the line-art fallback on screen.
+  useEffect(() => {
+    if (!play || !use3d || !canvasRef.current) return;
+    let dispose: (() => void) | undefined;
+    let cancelled = false;
+    const settle = () => {
+      artSettled.current = true;
+      onArtSettled.current();
+    };
+    const fail = () => {
+      if (cancelled || artSettled.current) return;
+      setShowFallback(true);
+      settle();
+    };
+    const fb = setTimeout(fail, 5000);
+    (enginePromise ?? import("./loader3d/engine"))
+      .then((mod) => {
+        if (cancelled || !canvasRef.current) return;
+        if (!mod) return fail();
+        const { mountLoader3D } = mod;
+        dispose = mountLoader3D(canvasRef.current, dish as Exclude<Variant, "logo">, {
+          brand: BRAND,
+          flavor: FLAVOR,
+          reduced: reduce.current,
+          onFirstFrame: () => {
+            if (artSettled.current) return; // line-art already took over — never swap mid-intro
+            setReady3d(true);
+            settle();
+          },
+        });
+      })
+      .catch(fail);
+    return () => {
+      cancelled = true;
+      clearTimeout(fb);
+      dispose?.();
+    };
+  }, [play, use3d, dish]);
+
   // assemble → hold (shine) → gentle float. The intro is allowed to leave only
   // once it has BOTH played its full minimum cycle AND the page has loaded - so
   // a fast load never cuts the animation short.
@@ -269,7 +331,8 @@ export default function LoadingScreen({
     const push = (fn: () => void, ms: number) => timers.current.push(setTimeout(fn, ms));
 
     // Full choreography: assemble (~1s) → shine (~0.6s) → a beat of float.
-    const MIN_SHOW_MS = 2600;
+    // The 3D scenes need ~3s to land their first "wow" beat.
+    const MIN_SHOW_MS = use3d ? 3400 : 2600;
 
     push(() => setPhase("hold"), 1000);
 
@@ -293,10 +356,24 @@ export default function LoadingScreen({
     };
     if (!keepLooping && !loaded) window.addEventListener("load", onLoad);
 
+    // For 3D, the minimum cycle is also counted from the first drawn frame, so
+    // a slow engine download still gets its full scene on screen.
+    let floorDone = false;
+    let artDone = !use3d || artSettled.current;
+    const startArtClock = () => push(() => {
+      artDone = true;
+      minDone = floorDone;
+      maybeLeave();
+    }, 2400);
     push(() => {
-      minDone = true;
+      floorDone = true;
+      minDone = artDone;
       maybeLeave();
     }, MIN_SHOW_MS);
+    if (use3d) {
+      if (artSettled.current) startArtClock();
+      else onArtSettled.current = startArtClock;
+    }
 
     // Safety net: never hang past this even if `load` never fires.
     const cap = setTimeout(leave, 8000);
@@ -307,7 +384,7 @@ export default function LoadingScreen({
       timers.current.forEach(clearTimeout);
       timers.current = [];
     };
-  }, [play, keepLooping]);
+  }, [play, keepLooping, use3d]);
 
   if (!mounted) return null;
 
@@ -353,16 +430,16 @@ export default function LoadingScreen({
             left: "50%",
             width: 300,
             height: 300,
-            transform: "translate(-50%, -62%)",
+            transform: "translate(-50%, -60%)",
             borderRadius: "50%",
             background: `radial-gradient(circle, ${BRAND}22 0%, ${BRAND}00 66%)`,
             pointerEvents: "none",
           }}
         />
 
-        {/* "pizza" style = the brand logo itself, bouncing up and down. Every
-            other style renders its line-art dish, which assembles then floats. */}
-        {dish === "pizza" ? (
+        {/* "logo" style = the brand logo itself, bouncing up and down. Every
+            other style renders its 3D scene (line-art dish until it's ready). */}
+        {dish === "logo" ? (
           <div
             style={{
               display: "flex",
@@ -390,18 +467,41 @@ export default function LoadingScreen({
             />
           </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 120,
-              height: 96,
-              animation: floating && phase !== "assemble" ? "floatBob 3s ease-in-out infinite" : undefined,
-              filter: `drop-shadow(0 8px 16px ${BRAND}33)`,
-            }}
-          >
-            <FrontArt variant={dish} phase={phase} />
+          <div style={{ position: "relative", width: "min(66vw, 240px)", height: "min(58vw, 205px)", marginBottom: -12 }}>
+            <canvas
+              ref={canvasRef}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: ready3d ? 1 : 0, transition: "opacity 0.45s ease" }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: ready3d || !showFallback ? 0 : 1,
+                transition: "opacity 0.3s ease",
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 120,
+                  height: 96,
+                  animation: floating && phase !== "assemble" ? "floatBob 3s ease-in-out infinite" : undefined,
+                  filter: `drop-shadow(0 8px 16px ${BRAND}33)`,
+                }}
+              >
+                {dish === "pizza" ? (
+                  <Image src={LOGO} alt="" width={88} height={88} style={{ width: 88, height: 88, objectFit: "contain" }} />
+                ) : (
+                  <FrontArt variant={dish} phase={phase} />
+                )}
+              </div>
+            </div>
           </div>
         )}
 

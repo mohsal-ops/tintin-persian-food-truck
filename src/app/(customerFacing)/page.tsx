@@ -24,6 +24,12 @@ import {
   Frequentlyaskedquestions,
 } from "./_components/HomeSections";
 import { ReviewsSection } from "./_components/ReviewsSection";
+import { CorePitch } from "./_components/CorePitch";
+import { getActiveTheme } from "@/lib/themes/active";
+import { SmashHome } from "./_components/themes/SmashHome";
+import { getThemeHomeContent } from "@/lib/themes/homeContent";
+import { DinerHome } from "./_components/themes/DinerHome";
+import { ElegantHome } from "./_components/themes/ElegantHome";
 import {
   Item,
   SideGroup,
@@ -141,7 +147,16 @@ async function ReviewsDataSection() {
   return <ReviewsSection reviews={reviews} />;
 }
 
+const slim = (p: { id: string; name: string; priceInCents: number; description: string | null; image: string | null }) => ({
+  id: p.id,
+  name: p.name,
+  priceInCents: p.priceInCents,
+  description: p.description,
+  image: p.image,
+});
+
 export default async function Home() {
+  const themeSlug = await getActiveTheme();
   // TopSection and the static sections below render immediately; the two
   // heavier DB-backed sections stream in behind Suspense so they aren't
   // blocked on the featured-products and places queries. The hero image is a
@@ -165,6 +180,85 @@ export default async function Home() {
     getSiteText(),
     getLogoUrl(),
   ]);
+
+  // Bespoke per-theme homepages (their own layout + motion, modeled on the
+  // reference designs). classic-starvega and any theme without a custom home
+  // fall through to the standard section stack below, unchanged.
+  if (themeSlug === "smash-bold") {
+    const [featured, reviews, content, gallery] = await Promise.all([
+      GetFeaturedProducts(),
+      db.review.findMany({ orderBy: { order: "asc" } }),
+      getThemeHomeContent(themeSlug),
+      db.galleryImage.findMany({ orderBy: { order: "asc" }, select: { url: true, alt: true }, take: 24 }),
+    ]);
+    return (
+      <>
+        <FaqSchema />
+        <SmashHome
+          content={content}
+          gallery={gallery}
+          heroImages={[heroImage, heroImage2, heroImage3]}
+          logoUrl={logoUrl}
+          featured={featured.map((p) => ({
+            id: p.id,
+            name: p.name,
+            priceInCents: p.priceInCents,
+            description: p.description,
+            image: p.image,
+          }))}
+          reviews={reviews}
+        />
+      </>
+    );
+  }
+
+  if (themeSlug === "diner-classic") {
+    const [types, featured, reviews, content, gallery] = await Promise.all([
+      db.types.findMany({
+        orderBy: { createdAt: "asc" },
+        include: { items: { where: { isAvailableForPurchase: true }, take: 6 } },
+      }),
+      GetFeaturedProducts(),
+      db.review.findMany({ orderBy: { order: "asc" } }),
+      getThemeHomeContent(themeSlug),
+      db.galleryImage.findMany({ orderBy: { order: "asc" }, select: { url: true, alt: true }, take: 8 }),
+    ]);
+    return (
+      <>
+        <FaqSchema />
+        <DinerHome
+          gallery={gallery}
+          content={content}
+          heroImage={content.images.diner_hero ?? heroImage}
+          menu={types.map((t) => ({ id: t.id, name: t.name, items: t.items.map(slim) }))}
+          featured={featured.map(slim)}
+          reviews={reviews}
+        />
+      </>
+    );
+  }
+
+  if (themeSlug === "refined-elegant") {
+    const [featured, reviews, gallery, content] = await Promise.all([
+      GetFeaturedProducts(),
+      db.review.findMany({ orderBy: { order: "asc" } }),
+      db.galleryImage.findMany({ orderBy: { order: "asc" }, select: { url: true, alt: true }, take: 10 }),
+      getThemeHomeContent(themeSlug),
+    ]);
+    return (
+      <>
+        <FaqSchema />
+        <ElegantHome
+          content={content}
+          heroImages={[heroImage, heroImage2, heroImage3]}
+          gallery={gallery.slice(0, 6).map((g) => g.url)}
+          galleryItems={gallery}
+          featured={featured.map(slim)}
+          reviews={reviews}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="flex  pt-20 flex-col gap-5 items-center justify-center    [&>*:not(:first-child)]:m-2">
@@ -220,6 +314,18 @@ export default async function Home() {
           <Frequentlyaskedquestions />
         </div>
       </FadeIn>
+      {/* Core-pitch block (section 5 of the contract) — the four Starvega
+          pillars. Rendered for the themed skins only; classic-starvega keeps its
+          existing native sections, which already carry this message, so the
+          default site is unchanged. */}
+      {themeSlug !== "classic-starvega" && (
+        <>
+          <SectionDivider />
+          <div className="w-full flex justify-center">
+            <CorePitch />
+          </div>
+        </>
+      )}
       <SectionDivider />
       <Suspense fallback={<div className="h-40 w-full sm:w-[75%] animate-pulse bg-muted rounded-4xl" />}>
         <LocationSection />

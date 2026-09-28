@@ -5,8 +5,11 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 import db from "@/db/db";
 import { getBusinessHours } from "@/lib/getHours";
-import { getThemeColor, DEFAULT_THEME_COLOR } from "@/lib/siteSettings";
+import { getThemeColor, DEFAULT_THEME_COLOR, getSavedThemePalettes } from "@/lib/siteSettings";
+import { paletteCss, resolvePalette } from "@/lib/themes/palette";
 import { readableTextColor } from "@/lib/color";
+import { themeFontVariables } from "@/lib/themes/fonts";
+import { getActiveTheme } from "@/lib/themes/active";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -116,12 +119,23 @@ export default async function RootLayout({
     ? rawColor
     : DEFAULT_THEME_COLOR;
   const brandForeground = readableTextColor(themeColor);
+  // Active design skin. Defaults to classic-starvega when siteConfig has no
+  // `theme` (every existing client), so nothing already deployed changes look.
+  const themeSlug = await getActiveTheme();
+  // The active design's owner-editable colours (--tp-* vars; empty for classic).
+  const { palette, custom } = resolvePalette(themeSlug, await getSavedThemePalettes());
+  const themePaletteCss = paletteCss(themeSlug, palette, custom);
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme={themeSlug}
+      className={themeFontVariables}
+      suppressHydrationWarning
+    >
       <head>
         <style
           dangerouslySetInnerHTML={{
-            __html: `:root{--brand:${themeColor};--brand-foreground:${brandForeground}}`,
+            __html: `:root{--brand:${themeColor};--brand-foreground:${brandForeground}}${themePaletteCss}`,
           }}
         />
         <script
