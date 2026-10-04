@@ -22,6 +22,8 @@ type PropsTypes = {
   products: ItemWithSides[];
   featuredProducts: ItemWithSides[];
   hours: BusinessHourRow[];
+  /** Owner has Uber Direct delivery on (Delivery settings). */
+  deliveryOn?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 
@@ -47,12 +49,15 @@ export default function MainPageMenu({
   gategories,
   products,
   hours,
+  deliveryOn = false,
 }: PropsTypes) {
   const [filtered, setfiltered] = useState<ItemWithSides[] | undefined>();
   // Delivery is a Standard+ tier capability; Starter sites are pickup-only.
   // tierOf() defaults a tier-less (pre-tiers) siteConfig to PRO, so existing
   // clients that get new template code but keep their old siteConfig keep delivery.
-  const deliveryAllowed = atLeast(tierOf(SITE_CONFIG), "STANDARD");
+  // Delivery IS Uber Direct, so it also needs the owner's Delivery setting on -
+  // otherwise customers could pick a delivery no courier will ever fulfil.
+  const deliveryAllowed = atLeast(tierOf(SITE_CONFIG), "STANDARD") && deliveryOn;
   // Default to pickup so ordering works out of the box; the toggle can switch to delivery.
   const [choice, setChoice] = useState<"delivery" | "pickup" | null>("pickup");
   const [query, setQuery] = useState("");
@@ -96,6 +101,22 @@ export default function MainPageMenu({
   }
 
   // Tracks the serachbar so it fiex it or un-fix it
+  // Deep links like /Menu#cat-<id> (the homepage category tags): wait for that
+  // category to render, then glide to it below the fixed nav.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id.startsWith("cat-")) return;
+    let tries = 0;
+    const t = setInterval(() => {
+      const el = document.getElementById(id);
+      if (el || ++tries > 40) {
+        clearInterval(t);
+        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: "smooth" });
+      }
+    }, 100);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {

@@ -20,7 +20,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // Vercel image optimization quota is account-wide; once used, new sizes 402 (phones lost photos).
+    // Serve images as-is: Vercel Image Optimization is capped per ACCOUNT on the
+    // free plan, and once the monthly quota is used every NEW size returns 402 —
+    // phones (which request small widths) lost every photo while desktop sizes
+    // still came from cache. Uploads are already web-sized (webp/jpg from Blob).
     unoptimized: true,
     remotePatterns: [
       {

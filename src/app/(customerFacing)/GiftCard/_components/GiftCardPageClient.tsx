@@ -20,11 +20,18 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY as string,
-);
+// Publishable key comes from the server (admin → Payments, else the env var).
+let stripePromise: ReturnType<typeof loadStripe> | null = null;
+let stripeKey = "";
+function stripeFor(key: string) {
+  if (!stripePromise || stripeKey !== key) {
+    stripeKey = key;
+    stripePromise = loadStripe(key);
+  }
+  return stripePromise;
+}
 
-export default function GiftCardPageClient({ logoUrl }: { logoUrl?: string }) {
+export default function GiftCardPageClient({ logoUrl, publishableKey }: { logoUrl?: string; publishableKey: string }) {
   const [clientSecret, setClientSecret] = useState<string>();
   const [price, setPrice] = useState(50 * 100);
   const route = useRouter();
@@ -76,7 +83,7 @@ export default function GiftCardPageClient({ logoUrl }: { logoUrl?: string }) {
   return (
     <div className="max-w-5xl mx-auto mt-10 space-y-10">
       {/* 🔥 HERO */}
-      <section className="relative overflow-hidden rounded-3xl bg-white px-10 py-24 text-center shadow-xl text-brand">
+      <section className="relative overflow-hidden rounded-3xl bg-card px-10 py-24 text-center shadow-xl text-brand">
         {/* REPEATED LOGO BACKGROUND */}
         <div
           className="absolute inset-0"
@@ -89,7 +96,7 @@ export default function GiftCardPageClient({ logoUrl }: { logoUrl?: string }) {
         />
 
         {/* DARK OVERLAY */}
-        <div className="absolute inset-0 bg-white/90" />
+        <div className="absolute inset-0 bg-card/90" />
 
         {/* CONTENT */}
         <div className="relative z-10">
@@ -172,7 +179,7 @@ export default function GiftCardPageClient({ logoUrl }: { logoUrl?: string }) {
 
       {/* 💳 PAYMENT */}
       {clientSecret ? (
-        <Elements options={{ clientSecret }} stripe={stripePromise}>
+        <Elements options={{ clientSecret }} stripe={stripeFor(publishableKey)}>
           <CheckoutForm
             priceInCents={price}
             paymentIntentId={clientSecret.split("_secret_")[0]}

@@ -1,5 +1,5 @@
 import db from "@/db/db"
-import Stripe from "stripe"
+import { getStripe, getStripeConfig } from "@/lib/stripeConfig"
 import { StripeCheckoutForm } from "../../_components/StripeCheckoutForm"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -12,7 +12,6 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder")
 
 // ✅ FIX: await the params
 export default async function Page({ params }: PageProps) {
@@ -66,8 +65,42 @@ export default async function Page({ params }: PageProps) {
   // Add the real Uber Direct courier fee only for delivery orders (it's stored on
   // the cart at address entry). Pickup orders are unaffected.
   const isDelivery = cart.items[0] ? deriveOrderType(cart.items[0]) === "delivery" : false
+
+  // A delivery order is only payable with a real courier quote. Without one there
+  // is no courier to dispatch, so never take payment for a "free" delivery that
+  // won't happen - send the customer back to fix the address or pick up.
+  if (isDelivery && !cart.uberQuoteId) {
+    return (
+      <div className="mx-auto flex min-h-[60svh] w-full max-w-md flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
+        <h1 className="text-xl font-semibold">Delivery isn&apos;t available for this order</h1>
+        <p className="text-muted-foreground">
+          We couldn&apos;t get a courier for your delivery address, so nothing has been charged.
+          Please go back and choose pickup, or try a different address.
+        </p>
+        <Button asChild variant="mainButton">
+          <Link href="/Menu">Back to the menu</Link>
+        </Button>
+      </div>
+    )
+  }
+
   const deliveryFee = isDelivery ? cart.uberFeeCents ?? 0 : 0
   const total = Math.max(0, itemsTotal - discountInCents) + deliveryFee
+
+  const [stripe, stripeCfg] = await Promise.all([getStripe(), getStripeConfig()])
+  if (!stripe || !stripeCfg.publishableKey) {
+    return (
+      <div className="mx-auto flex min-h-[60svh] w-full max-w-md flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
+        <h1 className="text-xl font-semibold">Online payment isn&apos;t open yet</h1>
+        <p className="text-muted-foreground">
+          This restaurant hasn&apos;t switched on card payments yet, so nothing has been charged. Please call to order.
+        </p>
+        <Button asChild variant="mainButton">
+          <Link href="/Menu">Back to the menu</Link>
+        </Button>
+      </div>
+    )
+  }
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: total,
@@ -90,6 +123,7 @@ export default async function Page({ params }: PageProps) {
         priceInCents={total}
         deliveryFeeInCents={deliveryFee}
         clientSecret={paymentIntent.client_secret}
+        publishableKey={stripeCfg.publishableKey}
         loyaltyEnabled={loyalty.enabled}
         loyaltyConsentText={loyalty.consentText}
         loyaltyIncentive={loyaltyIncentive()}

@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 import { CorePitch } from "../CorePitch";
 import { DINER, DinerButton, tint } from "./DinerNav";
 import { DinerGallery } from "./DinerGallery";
+import { SmartDishImage } from "./SmartDishImage";
 import type { ThemeHomeContent } from "@/lib/themes/homeContent";
 import { stretchWord } from "@/lib/themes/mediaSlots";
 
@@ -21,7 +21,7 @@ import { stretchWord } from "@/lib/themes/mediaSlots";
 // and the in-voice core pitch. Content/photos are the client's own.
 
 type P = { id: string; name: string; priceInCents: number; description: string | null; image: string | null };
-type Cat = { id: string; name: string; items: P[] };
+type Cat = { id: string; name: string; count?: number; items: P[] };
 type R = { id: string; name: string; review: string; avatar: string };
 
 const { brown: BROWN, cream: CREAM, gold: GOLD, onGold: ON_GOLD, onBrown: ON_BROWN } = DINER;
@@ -107,26 +107,8 @@ function Drips() {
 // white box. Hover lifts it and pops a chocolate price tag.
 function HeroDish({ p, i, count }: { p: P; i: number; count: number }) {
   const reduce = useReducedMotion();
-  const jpg = /\.jpe?g(\?|$)/i.test(p.image ?? "");
-  const [kind, setKind] = useState<"?" | "cutout" | "photo">(jpg ? "photo" : "?");
   const center = count === 3 ? i === 1 : count === 1;
   const side = count === 3 ? i - 1 : count === 2 ? (i === 0 ? -1 : 1) : 0;
-
-  const detect = (img: HTMLImageElement) => {
-    if (kind !== "?") return;
-    try {
-      const cv = document.createElement("canvas");
-      cv.width = cv.height = 24;
-      const ctx = cv.getContext("2d", { willReadFrequently: true })!;
-      ctx.drawImage(img, 0, 0, 24, 24);
-      const d = ctx.getImageData(0, 0, 24, 24).data;
-      const a = (x: number, y: number) => d[(y * 24 + x) * 4 + 3];
-      const corners = [a(0, 0), a(23, 0), a(0, 23), a(23, 23), a(12, 0), a(0, 12)];
-      setKind(corners.filter((v) => v < 200).length >= 3 ? "cutout" : "photo");
-    } catch {
-      setKind("photo"); // unreadable (cross-origin) → the plate never shows a white box
-    }
-  };
 
   return (
     <motion.div
@@ -143,20 +125,17 @@ function HeroDish({ p, i, count }: { p: P; i: number; count: number }) {
         >
           {/* contact shadow */}
           <span aria-hidden className="absolute inset-x-[14%] bottom-[2%] h-[9%] rounded-[50%] blur-md transition-transform duration-500 group-hover:scale-x-90" style={{ background: tint(BROWN, 35) }} />
-          <span
-            className={`absolute block transition-transform duration-500 ease-out group-hover:-translate-y-3 group-hover:scale-[1.06] ${kind === "photo" ? "inset-[5%] overflow-hidden rounded-full" : "inset-0"}`}
-            style={kind === "photo" ? { boxShadow: `0 0 0 clamp(5px,0.9vw,10px) ${CREAM}, 0 24px 40px -18px ${tint(BROWN, 70)}` } : { filter: `drop-shadow(0 22px 26px ${tint(BROWN, 40)})` }}
-          >
-            <Image
-              src={p.image!}
-              alt={p.name}
-              fill
-              priority
-              sizes="(max-width: 768px) 46vw, 480px"
-              className={`${kind === "photo" ? "object-cover" : "object-contain"} transition-opacity duration-300 ${kind === "?" ? "opacity-0" : "opacity-100"}`}
-              onLoad={(e) => detect(e.currentTarget)}
-            />
-          </span>
+          <SmartDishImage
+            src={p.image!}
+            alt={p.name}
+            priority
+            sizes="(max-width: 768px) 46vw, 480px"
+            className="transition-transform duration-500 ease-out group-hover:-translate-y-3 group-hover:scale-[1.06]"
+            photoClassName="inset-[5%] overflow-hidden rounded-full"
+            cutoutClassName="inset-0"
+            photoStyle={{ boxShadow: `0 0 0 clamp(5px,0.9vw,10px) ${CREAM}, 0 24px 40px -18px ${tint(BROWN, 70)}` }}
+            cutoutStyle={{ filter: `drop-shadow(0 22px 26px ${tint(BROWN, 40)})` }}
+          />
         </motion.span>
         {/* price tag */}
         <span
@@ -219,33 +198,47 @@ function Banner({ children }: { children: React.ReactNode }) {
   );
 }
 
+// "Diner window" frame — ONE clean arched photo (no stacked discs), framed in
+// white with the theme's signature hard golden offset shadow (same language as
+// the buttons). It wipes up into view; on hover it lifts and the shadow tucks in.
+// Arch radius: half-width round top (40% of a 4:5 frame's height = 50% of its
+// width) + soft bottom corners. "rounded-t-full" made browsers scale ALL radii
+// down, flattening the bottom.
+const ARCH = (px: number) => `50% 50% ${px}px ${px}px / 40% 40% ${px}px ${px}px`;
+
 function Plate({ src, alt, size = "md", priority }: { src: string | null; alt: string; size?: "md" | "lg"; priority?: boolean }) {
-  const dim = size === "lg" ? "size-64 md:size-80" : "size-48 md:size-56";
+  const reduce = useReducedMotion();
+  const dim = size === "lg" ? "w-64 md:w-80" : "w-52 md:w-60";
   return (
-    <div className={`relative ${dim}`}>
-      {/* chocolate disc peeking out up-left, like Fame's plates */}
-      <motion.span
-        className="absolute left-0 top-0 size-[86%] rounded-full"
-        style={{ background: BROWN }}
-        initial={{ scale: 0 }}
-        whileInView={{ scale: 1 }}
-        viewport={{ once: true, margin: "-10%" }}
-        transition={{ type: "spring", stiffness: 200, damping: 16 }}
-      />
-      <motion.div
-        className="absolute bottom-0 right-0 size-[86%] overflow-hidden rounded-full bg-white shadow-[10px_16px_24px_-10px_color-mix(in_srgb,var(--tp-ink)_45%,transparent)] transition-transform duration-500 ease-out group-hover:-translate-y-2 group-hover:rotate-[-5deg] group-hover:scale-[1.04]"
-        initial={{ opacity: 0, rotate: -24, x: 24, y: 24 }}
-        whileInView={{ opacity: 1, rotate: 0, x: 0, y: 0 }}
-        viewport={{ once: true, margin: "-10%" }}
-        transition={{ type: "spring", stiffness: 140, damping: 15, delay: 0.12 }}
+    <motion.div
+      className={`relative aspect-[4/5] ${dim}`}
+      initial={reduce ? false : { y: 36, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      viewport={{ once: true, margin: "-10%" }}
+      transition={{ type: "spring", stiffness: 130, damping: 18 }}
+    >
+      <div
+        className="absolute inset-0 overflow-hidden border-[5px] border-white bg-white transition-all duration-300 ease-out group-hover:-translate-x-1 group-hover:-translate-y-1.5"
+        style={{ boxShadow: `10px 10px 0 ${GOLD}`, borderRadius: ARCH(26) }}
       >
-        {src ? (
-          <Image src={src} alt={alt} fill priority={priority} sizes="(max-width: 768px) 60vw, 320px" className="object-cover transition-transform duration-700 group-hover:scale-110" />
-        ) : (
-          <span className="grid size-full place-items-center text-5xl" style={{ fontFamily: "var(--font-script), cursive", color: BROWN }}>{alt.charAt(0)}</span>
-        )}
-      </motion.div>
-    </div>
+        <motion.div
+          className="absolute inset-0 overflow-hidden"
+          style={{ borderRadius: ARCH(20) }}
+          initial={reduce ? false : { clipPath: "inset(100% 0% 0% 0%)" }}
+          whileInView={{ clipPath: "inset(0% 0% 0% 0%)" }}
+          viewport={{ once: true, margin: "-10%" }}
+          transition={{ duration: 0.9, ease: EASE, delay: 0.1 }}
+        >
+          {src ? (
+            <Image src={src} alt={alt} fill priority={priority} sizes="(max-width: 768px) 60vw, 320px" className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]" />
+          ) : (
+            <span className="grid size-full place-items-center text-6xl" style={{ fontFamily: "var(--font-script), cursive", color: BROWN, background: GOLD }}>{alt.charAt(0)}</span>
+          )}
+          {/* soft top sheen, like light on a window */}
+          <span aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent_38%)]" />
+        </motion.div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -281,7 +274,10 @@ export function DinerHome({ content, menu, featured, reviews, heroImage, gallery
   const c = SITE_CONFIG;
   const heroWord = content.words.theme_heroword || stretchWord(c.primaryDish || c.cuisines?.[0] || "Delicious");
   const heroFood = featured.filter((p) => p.image).slice(0, 3);
-  const cats = menu.filter((m) => m.items.length > 0).slice(0, 4);
+  const cats = menu.filter((m) => m.items.length > 0).map((m) => ({ id: m.id, name: m.name, count: m.count ?? m.items.length }));
+  const favPool = featured.length > 0 ? featured : (menu.find((m) => m.items.length > 0)?.items ?? []);
+  const favorites = favPool.slice(0, 5);
+  const [lead, ...more] = favorites;
   const banner = content.subheadline || c.tagline;
 
   return (
@@ -307,43 +303,66 @@ export function DinerHome({ content, menu, featured, reviews, heroImage, gallery
         <Drips />
       </section>
 
-      {/* 2 · The menu, category by category */}
+      {/* 2 · Favorites, not the whole menu — a long menu used to scroll forever
+          here. The owner's featured dishes (else the first category) as one
+          big lead + up to 4, then every category as a tag that jumps straight
+          to it on the menu page. */}
       <div className="relative overflow-hidden pb-10 pt-40">
         <Halftone side="left" />
         <Halftone side="right" />
-        {cats.map((cat, ci) => {
-          const [lead, ...rest] = cat.items;
-          const single = ci === 0 && cat.items.length > 0;
-          return (
-            <section key={cat.id} className={ci === 0 ? "" : "pt-24"}>
-              <SectionTitle>{cat.name}</SectionTitle>
-              {ci === 1 && banner && <Banner>{banner}</Banner>}
-              {single ? (
-                <>
-                  <Link href="/Menu" className="group mx-auto mt-14 grid max-w-5xl items-center gap-10 px-6 md:grid-cols-2">
-                    <div className="flex justify-center"><Plate src={lead.image} alt={lead.name} size="lg" /></div>
-                    <div className="text-center">
-                      <h3 className="text-3xl font-black uppercase tracking-tight">{lead.name}</h3>
-                      {lead.description && <p className="mx-auto mt-5 max-w-sm text-sm leading-7" style={{ fontFamily: "var(--font-courier-prime), monospace" }}>{lead.description}</p>}
-                      <p className="mt-5 text-xl font-extrabold">{usd(lead.priceInCents)}</p>
-                      <span className="mt-7 inline-block"><span className="inline-flex rounded-md px-7 py-3 text-base font-extrabold lowercase shadow-[5px_5px_0_var(--tp-ink)] transition-all duration-200 group-hover:translate-x-[2px] group-hover:translate-y-[2px] group-hover:shadow-[2px_2px_0_var(--tp-ink)]" style={{ background: GOLD, color: ON_GOLD }}>{c.menuCtaLabel}</span></span>
-                    </div>
+        {favorites.length > 0 && (
+          <section>
+            <SectionTitle>Our Favorites</SectionTitle>
+            {banner && <Banner>{banner}</Banner>}
+            <Link href="/Menu" className="group mx-auto mt-14 grid max-w-5xl items-center gap-10 px-6 md:grid-cols-2">
+              <div className="flex justify-center"><Plate src={lead.image} alt={lead.name} size="lg" /></div>
+              <div className="text-center">
+                <p className="text-xs font-extrabold uppercase tracking-[0.3em]" style={{ color: tint(BROWN, 60) }}>the one everyone orders</p>
+                <h3 className="mt-3 text-3xl font-black uppercase tracking-tight">{lead.name}</h3>
+                {lead.description && <p className="mx-auto mt-5 max-w-sm text-sm leading-7" style={{ fontFamily: "var(--font-courier-prime), monospace" }}>{lead.description}</p>}
+                <p className="mt-5 text-xl font-extrabold">{usd(lead.priceInCents)}</p>
+                <span className="mt-7 inline-block"><span className="inline-flex rounded-md px-7 py-3 text-base font-extrabold lowercase shadow-[5px_5px_0_var(--tp-ink)] transition-all duration-200 group-hover:translate-x-[2px] group-hover:translate-y-[2px] group-hover:shadow-[2px_2px_0_var(--tp-ink)]" style={{ background: GOLD, color: ON_GOLD }}>{c.menuCtaLabel}</span></span>
+              </div>
+            </Link>
+            {more.length > 0 && (
+              <div className={`mx-auto mt-20 grid max-w-5xl gap-x-8 gap-y-16 sm:grid-cols-2 ${more.length > 2 ? "lg:max-w-6xl lg:grid-cols-4" : ""}`}>
+                {more.map((p) => <Dish key={p.id} p={p} />)}
+              </div>
+            )}
+          </section>
+        )}
+
+        {cats.length > 0 && (
+          <section className="pt-24">
+            <SectionTitle>On the Menu</SectionTitle>
+            <div className="mx-auto mt-12 flex max-w-4xl flex-wrap justify-center gap-x-4 gap-y-5 px-6">
+              {cats.map((cat, i) => (
+                <motion.div
+                  key={cat.id}
+                  initial={{ y: 24, opacity: 0, rotate: i % 2 ? 3 : -3 }}
+                  whileInView={{ y: 0, opacity: 1, rotate: i % 2 ? 1.5 : -1.5 }}
+                  viewport={{ once: true, margin: "-10%" }}
+                  transition={{ type: "spring", stiffness: 200, damping: 16, delay: (i % 6) * 0.05 }}
+                >
+                  <Link
+                    href={`/Menu#cat-${cat.id}`}
+                    className="group relative flex items-center gap-3 rounded-md border-[3px] py-2.5 pl-4 pr-3 transition-all duration-200 hover:-translate-y-1 hover:rotate-0"
+                    style={{ background: CREAM, borderColor: BROWN, boxShadow: `4px 4px 0 ${BROWN}` }}
+                  >
+                    {/* receipt-tag punch hole */}
+                    <span aria-hidden className="size-2.5 rounded-full border-2" style={{ borderColor: BROWN }} />
+                    <span className="text-2xl leading-none" style={{ fontFamily: "var(--font-script), cursive" }}>{cat.name}</span>
+                    <span className="rounded px-1.5 py-0.5 text-[0.65rem] font-extrabold" style={{ background: GOLD, color: ON_GOLD, fontFamily: "var(--font-courier-prime), monospace" }}>
+                      {cat.count}
+                    </span>
+                    <span aria-hidden className="text-lg font-black transition-transform duration-200 group-hover:translate-x-1">→</span>
                   </Link>
-                  {rest.length > 0 && (
-                    <div className="mx-auto mt-16 grid max-w-5xl gap-x-8 gap-y-16 sm:grid-cols-2">
-                      {rest.slice(0, 4).map((p) => <Dish key={p.id} p={p} />)}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="mx-auto mt-14 grid max-w-5xl gap-x-8 gap-y-16 sm:grid-cols-2">
-                  {cat.items.slice(0, 4).map((p) => <Dish key={p.id} p={p} />)}
-                </div>
-              )}
-            </section>
-          );
-        })}
-        <div className="mt-20 flex justify-center">
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+        <div className="mt-16 flex justify-center">
           <DinerButton href="/Menu">see the whole menu</DinerButton>
         </div>
       </div>
@@ -381,25 +400,12 @@ export function DinerHome({ content, menu, featured, reviews, heroImage, gallery
         </section>
       )}
 
-      {/* 4 · Our story + FAQ */}
-      <section className="relative overflow-hidden py-24">
-        <SectionTitle>Our Story</SectionTitle>
-        <Banner>{content.headline}</Banner>
-        {content.features.length > 0 && (
-          <div className="mx-auto mt-16 grid max-w-5xl gap-16 px-6 md:grid-cols-2">
-            {content.features.slice(0, 2).map((f, i) => (
-              <div key={i} className="group flex flex-col items-center text-center">
-                <Plate src={f.image || null} alt={f.title} />
-                <h3 className="mt-6 text-xl font-black uppercase tracking-tight">{f.title}</h3>
-                <p className="mt-3 max-w-md text-sm leading-7" style={{ fontFamily: "var(--font-courier-prime), monospace" }}>{f.description}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {c.home.faq?.length > 0 && (
-          <div className="mx-auto mt-20 max-w-3xl px-6">
-            <h3 className="mb-6 text-center text-4xl" style={{ fontFamily: "var(--font-script), cursive" }}>Good Questions</h3>
-            {c.home.faq.slice(0, 5).map((q, i) => (
+      {/* 4 · Good questions (Our Story lives on its own page now) */}
+      {c.home.faq?.length > 0 && (
+        <section className="relative overflow-hidden py-24">
+          <SectionTitle>Good Questions</SectionTitle>
+          <div className="mx-auto mt-12 max-w-3xl px-6">
+            {c.home.faq.slice(0, 6).map((q, i) => (
               <details key={i} className="group border-b-2 border-dashed py-4" style={{ borderColor: tint(BROWN, 25) }}>
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-extrabold uppercase">
                   {q.question}
@@ -409,8 +415,8 @@ export function DinerHome({ content, menu, featured, reviews, heroImage, gallery
               </details>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* 5 · Come say hi */}
       <section className="px-5 pb-20">
