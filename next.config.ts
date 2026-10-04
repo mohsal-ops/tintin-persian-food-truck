@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // Vercel image optimization quota is account-wide; once used, new sizes 402 (phones lost photos).
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
