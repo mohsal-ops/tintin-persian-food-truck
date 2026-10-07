@@ -1,4 +1,5 @@
 "use server";
+import { removeStoredFile, storeFile } from "@/lib/storage";
 import { assertWritable } from "@/lib/previewGuard";
 
 import db from "@/db/db";
@@ -19,13 +20,7 @@ async function saveImage(file: File, folder = "gallery"): Promise<string> {
     await fs.writeFile(`public${path}`, new Uint8Array(await file.arrayBuffer()));
     return path;
   } else {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(
-      `${folder}/${crypto.randomUUID()}-${file.name}`,
-      file,
-      { access: "public" }
-    );
-    return blob.url;
+    return storeFile(folder, file); // R2 (or Blob fallback) — lib/storage.ts
   }
 }
 
@@ -36,8 +31,7 @@ async function deleteImageFile(url: string) {
       const fs = await import("node:fs/promises");
       await fs.unlink(`public${url}`);
     } else if (url.startsWith("https://")) {
-      const { del } = await import("@vercel/blob");
-      await del(url);
+      await removeStoredFile(url);
     }
   } catch (err) {
     console.warn("Gallery image file delete failed, skipping:", err);
