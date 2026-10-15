@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { cfg } from "@/lib/configOpt";
 import { usePathname } from "next/navigation";
 import { Instagram } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/siteConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import AccountButton from "@/components/AccountButton";
 import AppSideBar from "../sideBar";
 import CartSideBar from "../Cart-SideBar";
 import { shouldShowCart, useNavCart } from "./useNavCart";
@@ -17,7 +19,7 @@ import { shouldShowCart, useNavCart } from "./useNavCart";
 // Colours come from the owner-editable palette (admin → Branding → Design
 // colours), injected as --tp-* vars by the root layout. Defaults = Fame's
 // golden #FCB931 / chocolate #3B2517 / cream #F9F4ED.
-export const DINER = { brown: "var(--tp-ink)", cream: "var(--tp-paper)", gold: "var(--tp-accent)", onGold: "var(--tp-on-accent)", onBrown: "var(--tp-on-ink)" } as const;
+export const DINER = { brown: "var(--tp-ink)", cream: "var(--tp-paper)", gold: "var(--tp-accent)", onGold: "var(--tp-on-accent)", onBrown: "var(--tp-on-ink)", text: "var(--tp-text)", heroText: "var(--tp-hero-text)", navAccent: "var(--tp-nav-accent)" } as const;
 /** Palette colour at an alpha (works with CSS vars, unlike "#hex" + "22"). */
 export const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
 
@@ -27,7 +29,7 @@ export const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%
 // is the first cuisine word(s), capped and clipped, with real breathing room.
 function shortSub(): string {
   const c = SITE_CONFIG;
-  const raw = (c.cuisines?.[0] || c.primaryDish || "").trim();
+  const raw = (c.cuisines?.[0] || cfg("primaryDish") || "").trim();
   const cut = raw.split(/s*[&,|·•-]s*|s+ands+/i)[0] ?? "";
   return cut.length > 22 ? cut.split(" ").slice(0, 2).join(" ") : cut;
 }
@@ -40,7 +42,7 @@ export function DinerLockup({ size = "md" }: { size?: "md" | "lg" }) {
     <span className="flex flex-col items-start leading-none">
       <span
         className={`${size === "lg" ? "text-5xl" : "text-[1.9rem] md:text-[2.1rem]"} inline-block whitespace-nowrap pb-1`}
-        style={{ fontFamily: "var(--font-script), cursive", color: DINER.gold, transform: "rotate(-4deg)", transformOrigin: "left bottom" }}
+        style={{ fontFamily: "var(--font-script), cursive", color: DINER.navAccent, transform: "rotate(-4deg)", transformOrigin: "left bottom" }}
       >
         {name}
       </span>
@@ -103,6 +105,7 @@ export function DinerNav({ initialCartId }: { initialCartId: string | null; logo
             </a>
           )}
           <span className="hidden md:inline-flex [&_button]:text-[var(--tp-on-ink)]">
+            <AccountButton />
             <ThemeToggle />
           </span>
           {shouldShowCart(pathname, cartItems.length) && (
@@ -116,7 +119,7 @@ export function DinerNav({ initialCartId }: { initialCartId: string | null; logo
             </DinerButton>
           </span>
           <span className="md:hidden [&_button]:text-[var(--tp-on-ink)]">
-            <AppSideBar />
+            <AppSideBar variant="diner-classic" />
           </span>
         </div>
       </div>

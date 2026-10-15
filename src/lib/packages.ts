@@ -14,17 +14,17 @@ export type PackageTier = "STARTER" | "STANDARD" | "PRO";
 export const PACKAGES = {
   STARTER: {
     label: "Starter",
-    price: 399,
+    price: 999,
     blurb: "Food trucks, counter-service, first website ever.",
   },
   STANDARD: {
     label: "Standard",
-    price: 999, // starting point - adjustable
+    price: 1999,
     blurb: "Most sit-down independents who want the real toolkit.",
   },
   PRO: {
     label: "Pro",
-    price: 1999, // starting point - adjustable
+    price: 3499,
     blurb: "Multi-location owners, or anyone who wants everything.",
   },
 } as const;
@@ -40,8 +40,11 @@ export const atLeast = (have: PackageTier, need: PackageTier): boolean =>
 // packageTier field - e.g. an existing client that receives new template code via
 // "Update from template" but keeps its blocklisted siteConfig) is treated as PRO,
 // so gating never strips sections from an already-live site.
-export function tierOf(cfg: { packageTier?: PackageTier }): PackageTier {
-  return cfg.packageTier ?? "PRO";
+// Accepts any config object: older client siteConfigs have no packageTier (or
+// none of the optional keys), which a `{ packageTier?: … }` parameter rejects at
+// build time ("no properties in common").
+export function tierOf(cfg: object): PackageTier {
+  return (cfg as { packageTier?: PackageTier }).packageTier ?? "PRO";
 }
 
 // Per-tier capability flags. Drives the panel's FEATURES derivation and the

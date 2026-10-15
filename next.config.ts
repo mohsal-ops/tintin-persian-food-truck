@@ -4,6 +4,8 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // HTTPS only, also on the client's custom domain (Vercel adds this only on *.vercel.app)
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(self)",
@@ -21,8 +23,12 @@ const nextConfig: NextConfig = {
   },
   images: {
     // Vercel Image Optimization is OFF (account-wide quota → 402s on new sizes;
-    // phones lost photos). Remote images go through wsrv.nl instead — see image-loader.ts.
+    // phones lost photos). Uploaded photos go through this site's own /api/img
+    // (resized once, then served from Vercel's CDN) - see image-loader.ts.
     loader: "custom",
+    // Few srcset widths, matching src/lib/imageWidths, so cached copies get re-used.
+    deviceSizes: [640, 960, 1280, 1920],
+    imageSizes: [160, 320],
     loaderFile: "./image-loader.ts",
     remotePatterns: [
       {

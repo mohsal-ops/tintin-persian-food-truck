@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { cfg } from "@/lib/configOpt";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { SITE_CONFIG } from "@/lib/siteConfig";
@@ -24,7 +25,7 @@ type P = { id: string; name: string; priceInCents: number; description: string |
 type Cat = { id: string; name: string; count?: number; items: P[] };
 type R = { id: string; name: string; review: string; avatar: string };
 
-const { brown: BROWN, cream: CREAM, gold: GOLD, onGold: ON_GOLD, onBrown: ON_BROWN } = DINER;
+const { brown: BROWN, cream: CREAM, gold: GOLD, onGold: ON_GOLD, onBrown: ON_BROWN, text: TEXT, heroText: HERO_TEXT } = DINER;
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -39,7 +40,7 @@ const Script = ({ children, className = "", style }: { children: React.ReactNode
 function PopWord({ text }: { text: string }) {
   const reduce = useReducedMotion();
   return (
-    <h1 aria-label={text} className="relative z-10 select-none text-center leading-[0.8]" style={{ color: CREAM, fontSize: "clamp(4.5rem, 15vw, 13.5rem)", transform: "rotate(-7deg)" }}>
+    <h1 aria-label={text} className="relative z-10 select-none text-center leading-[0.8]" style={{ color: HERO_TEXT, fontSize: "clamp(4.5rem, 15vw, 13.5rem)", transform: "rotate(-7deg)" }}>
       {Array.from(text).map((ch, i) => (
         <motion.span
           key={i}
@@ -170,7 +171,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       <DottedRule />
       <motion.h2
         className="shrink-0 text-center text-[clamp(3rem,7vw,5rem)] leading-none"
-        style={{ color: BROWN, fontFamily: "var(--font-script), cursive" }}
+        style={{ color: TEXT, fontFamily: "var(--font-script), cursive" }}
         initial={{ y: 24, opacity: 0, rotate: -4 }}
         whileInView={{ y: 0, opacity: 1, rotate: -2 }}
         viewport={{ once: true, margin: "-10%" }}
@@ -198,34 +199,30 @@ function Banner({ children }: { children: React.ReactNode }) {
   );
 }
 
-// "Diner window" frame — ONE clean arched photo (no stacked discs), framed in
-// white with the theme's signature hard golden offset shadow (same language as
-// the buttons). It wipes up into view; on hover it lifts and the shadow tucks in.
-// Arch radius: half-width round top (40% of a 4:5 frame's height = 50% of its
-// width) + soft bottom corners. "rounded-t-full" made browsers scale ALL radii
-// down, flattening the bottom.
-const ARCH = (px: number) => `50% 50% ${px}px ${px}px / 40% 40% ${px}px ${px}px`;
+// A round plate: dishes are usually shot on round plates, so a circle frames
+// them without cropping (the old arch cut plates into an "egg"). White rim +
+// the theme's signature hard golden offset shadow; the photo opens up from the
+// centre; on hover it lifts and the shadow tucks in.
 
 function Plate({ src, alt, size = "md", priority }: { src: string | null; alt: string; size?: "md" | "lg"; priority?: boolean }) {
   const reduce = useReducedMotion();
   const dim = size === "lg" ? "w-64 md:w-80" : "w-52 md:w-60";
   return (
     <motion.div
-      className={`relative aspect-[4/5] ${dim}`}
+      className={`relative aspect-square ${dim}`}
       initial={reduce ? false : { y: 36, opacity: 0 }}
       whileInView={{ y: 0, opacity: 1 }}
       viewport={{ once: true, margin: "-10%" }}
       transition={{ type: "spring", stiffness: 130, damping: 18 }}
     >
       <div
-        className="absolute inset-0 overflow-hidden border-[5px] border-white bg-white transition-all duration-300 ease-out group-hover:-translate-x-1 group-hover:-translate-y-1.5"
-        style={{ boxShadow: `10px 10px 0 ${GOLD}`, borderRadius: ARCH(26) }}
+        className="absolute inset-0 overflow-hidden rounded-full border-[8px] border-white bg-white transition-all duration-300 ease-out group-hover:-translate-x-1 group-hover:-translate-y-1.5"
+        style={{ boxShadow: `10px 10px 0 ${GOLD}, inset 0 0 0 1px rgba(0,0,0,0.06)` }}
       >
         <motion.div
-          className="absolute inset-0 overflow-hidden"
-          style={{ borderRadius: ARCH(20) }}
-          initial={reduce ? false : { clipPath: "inset(100% 0% 0% 0%)" }}
-          whileInView={{ clipPath: "inset(0% 0% 0% 0%)" }}
+          className="absolute inset-0 overflow-hidden rounded-full"
+          initial={reduce ? false : { clipPath: "circle(0% at 50% 50%)" }}
+          whileInView={{ clipPath: "circle(75% at 50% 50%)" }}
           viewport={{ once: true, margin: "-10%" }}
           transition={{ duration: 0.9, ease: EASE, delay: 0.1 }}
         >
@@ -246,11 +243,11 @@ function Dish({ p }: { p: P }) {
   return (
     <Link href="/Menu" className="group flex flex-col items-center px-4 text-center">
       <Plate src={p.image} alt={p.name} />
-      <h3 className="mt-6 text-2xl font-black uppercase tracking-tight md:text-[1.7rem]" style={{ color: BROWN }}>{p.name}</h3>
+      <h3 className="mt-6 text-2xl font-black uppercase tracking-tight md:text-[1.7rem]" style={{ color: TEXT }}>{p.name}</h3>
       {p.description && (
-        <p className="mt-4 line-clamp-3 max-w-md text-sm leading-7" style={{ color: BROWN, fontFamily: "var(--font-courier-prime), monospace" }}>{p.description}</p>
+        <p className="mt-4 line-clamp-3 max-w-md text-sm leading-7" style={{ color: TEXT, fontFamily: "var(--font-courier-prime), monospace" }}>{p.description}</p>
       )}
-      <p className="mt-4 text-lg font-extrabold" style={{ color: BROWN }}>{usd(p.priceInCents)}</p>
+      <p className="mt-4 text-lg font-extrabold" style={{ color: TEXT }}>{usd(p.priceInCents)}</p>
     </Link>
   );
 }
@@ -272,7 +269,7 @@ function Halftone({ side }: { side: "left" | "right" }) {
 
 export function DinerHome({ content, menu, featured, reviews, heroImage, gallery = [] }: { content: ThemeHomeContent; menu: Cat[]; featured: P[]; reviews: R[]; heroImage: string | null; gallery?: { url: string; alt?: string | null }[] }) {
   const c = SITE_CONFIG;
-  const heroWord = content.words.theme_heroword || stretchWord(c.primaryDish || c.cuisines?.[0] || "Delicious");
+  const heroWord = content.words.theme_heroword || stretchWord(cfg("primaryDish") || c.cuisines?.[0] || "Delicious");
   const heroFood = featured.filter((p) => p.image).slice(0, 3);
   const cats = menu.filter((m) => m.items.length > 0).map((m) => ({ id: m.id, name: m.name, count: m.count ?? m.items.length }));
   const favPool = featured.length > 0 ? featured : (menu.find((m) => m.items.length > 0)?.items ?? []);
@@ -281,7 +278,7 @@ export function DinerHome({ content, menu, featured, reviews, heroImage, gallery
   const banner = content.subheadline || c.tagline;
 
   return (
-    <div className="theme-bespoke w-full overflow-x-clip pt-20" style={{ background: CREAM, color: BROWN }}>
+    <div className="tp-home theme-bespoke w-full overflow-x-clip pt-20" style={{ background: CREAM, color: TEXT }}>
       {/* 1 · Golden hero */}
       <section className="relative overflow-visible" style={{ background: GOLD }}>
         <div className="relative mx-auto flex max-w-7xl flex-col items-center justify-center overflow-hidden px-4 pb-28 pt-16 md:min-h-[78svh] md:pb-24 md:pt-14">

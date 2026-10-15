@@ -134,6 +134,17 @@ model Cart {
   // entered). Set when the code is validated; on a completed order that campaign's
   // redemptionCount is incremented.
   promoCampaignId String?
+
+  // Delivery router (platform build, flag "delivery_router"). Which courier
+  // the quote came from: null/"uber_direct" = Uber (today's behaviour),
+  // "doordash_drive" = DoorDash Drive. The uber* fields above hold the quote /
+  // delivery for WHICHEVER courier was chosen (historic names, kept so the
+  // existing checkout, orders and success pages work unchanged).
+  deliveryProvider       String?
+  deliveryQuoteExpiresAt DateTime?
+  // What the courier actually charges (uberFeeCents is what the CUSTOMER pays,
+  // which can be lower when the restaurant absorbs part of the fee).
+  deliveryCourierFeeCents Int?
 }
 
 model CartItem {
@@ -312,3 +323,83 @@ model LoyaltyCampaign {
 }
 
 
+
+// ── POS integration (platform build, Phase 1) ─────────────────────────────────
+// All additive. Nothing reads these unless the "pos_push" / "pos_menu_sync"
+// flags are on (src/lib/flags.ts). Tokens are AES-256-GCM encrypted
+// (src/lib/secretBox.ts, domain "pos-creds") — never stored or logged in plain.
+
+model PosConnection {
+  id            String    @id @default(cuid())
+  provider      String    @unique // "square" | "clover" | "toast" | "lightspeed_k" | "shift4"
+  environment   String    @default("sandbox") // "sandbox" | "production"
+  merchantId    String?
+  locationId    String?   // Square location / Clover has one per merchant
+  credsEnc      String?   // encrypted { accessToken, refreshToken, expiresAt }
+  status        String    @default("disconnected") // connected | disconnected | error
+  lastError     String?
+  lastMenuSyncAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Maps our menu rows to POS catalog ids (items + modifier options).
+model PosMenuMap {
+  id         String   @id @default(cuid())
+  provider   String
+  localType  String   // "item" | "option"
+  localId    String   // Item.id or SideOption.id
+  posId      String   // Square ITEM_VARIATION / MODIFIER id, Clover item / modifier id
+  posVersion String?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([provider, localType, localId])
+  @@index([provider, posId])
+}
+
+// One row per paid order we try to push to the POS. cartId = our order id.
+model PosOrderSync {
+  id          String    @id @default(cuid())
+  cartId      String
+  provider    String
+  status      String    @default("pending") // pending | sent | failed | manual
+  posOrderId  String?
+  attempts    Int       @default(0)
+  lastError   String?
+  nextRetryAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([cartId, provider])
+  @@index([status, nextRetryAt])
+}
+
+// ── Web push (platform build, Phase 3; flag "web_push", OFF) ─────────────────
+// A browser that agreed to notifications. audience "owner" = new-order alerts
+// on the owner's phone/computer; "customer" = status of ONE order (cartId).
+model PushSubscription {
+  id            String    @id @default(cuid())
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  audience      String    // "owner" | "customer"
+  cartId        String?
+  userAgent     String?
+  failures      Int       @default(0)
+  lastSuccessAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([audience])
+  @@index([cartId])
+}
+
+// DB-backed rate limiting (lib/rateLimit.ts creates it on first use with raw
+// SQL). Declared here so `prisma db push` / migrate-client-dbs never see it as
+// an unknown table to drop. @@ignore: not used through the Prisma client.
+model RateHit {
+  key String
+  at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([key, at], map: "RateHit_key_at")
+  @@ignore
+}

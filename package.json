@@ -10,7 +10,12 @@
     "lint": "next lint",
     "seed:defaults": "node prisma/seed.defaults.mjs",
     "new-project": "node scaffold/new-project.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "sandbox:square": "vite-node scripts/square-sandbox-check.ts",
+    "sandbox:clover": "vite-node scripts/clover-sandbox-check.ts",
+    "sandbox:doordash": "vite-node scripts/doordash-sandbox-check.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^6.0.0",
@@ -68,6 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.186.1",
     "vaul": "^1.1.2",
+    "web-push": "^3.6.7",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -80,10 +86,12 @@
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.20",
     "prisma": "^7.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   }
 }

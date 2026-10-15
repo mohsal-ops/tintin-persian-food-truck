@@ -61,6 +61,7 @@ export async function addGalleryImage(
   let failed = 0;
 
   // Upload each selected file and create a row per image.
+  let lastError = "storage error";
   for (const file of files) {
     try {
       const url = await saveImage(file);
@@ -75,6 +76,7 @@ export async function addGalleryImage(
       added++;
     } catch (error) {
       console.error("addGalleryImage failed for", file.name, error);
+      lastError = (error as Error)?.message || "storage error";
       failed++;
     }
   }
@@ -85,7 +87,7 @@ export async function addGalleryImage(
   if (added === 0) {
     return {
       error:
-        "Couldn't upload. On the live site this usually means image storage (Vercel Blob) isn't connected yet.",
+        `Couldn't upload: ${lastError}. Try again in a minute.`,
     };
   }
   if (failed > 0) {

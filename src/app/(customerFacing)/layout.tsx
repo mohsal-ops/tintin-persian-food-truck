@@ -3,6 +3,7 @@ import { TopNavBar } from "./_components/navBar";
 import { SmashNav } from "./_components/themes/SmashNav";
 import { DinerNav } from "./_components/themes/DinerNav";
 import { ElegantNav } from "./_components/themes/ElegantNav";
+import { PopNav } from "./_components/themes/PopNav";
 import { getActiveTheme } from "@/lib/themes/active";
 import { Footer } from "./_components/Footer";
 import { Toaster } from "sonner";
@@ -15,6 +16,11 @@ import LoadingScreen from "@/components/LoadingScreen";
 import TrialPopup from "./_components/TrialPopup";
 import DashboardBubble from "./_components/DashboardBubble";
 import LoyaltyPopup from "@/components/LoyaltyPopup";
+import PwaBoot from "@/components/pwa/PwaBoot";
+import { getIconVersion } from "@/lib/pwa/iconUrl";
+import { isEnabled } from "@/lib/flags";
+import AppModeBoot from "@/components/app-mode/AppModeBoot";
+import AppShell from "@/components/app-mode/AppShell";
 
 // Public pages are cached and rebuilt at most every 5 min (owner edits also
 // revalidate instantly) — rendering on every visit blew the free CPU limit.
@@ -31,6 +37,7 @@ export default async function Customerlayout({
   const logoUrl = await getLogoUrl();
   const loyalty = await getLoyaltySettings();
   const theme = await getActiveTheme();
+  const pwaOn = await isEnabled("pwa");
 
   return (
     <SidebarProvider>
@@ -42,6 +49,10 @@ export default async function Customerlayout({
           would just be customer noise). Dashboard/preview visits are tracked
           separately in admin/layout.tsx. */}
       {(SITE_CONFIG as { trackWebsiteVisits?: boolean }).trackWebsiteVisits !== false && <VisitAlert source="site" />}
+      {/* The app uses the builder logo every site has (public/logo.png), not the dashboard one. */}
+      {pwaOn && <AppModeBoot name={SITE_CONFIG.name} logoUrl="/logo.png" />}
+      {pwaOn && <PwaBoot name={SITE_CONFIG.name} iconV={await getIconVersion()} />}
+      {pwaOn && <AppShell logoUrl="/logo.png" />}
       <TrialPopup />
       <DashboardBubble />
       <LoyaltyPopup
@@ -55,19 +66,21 @@ export default async function Customerlayout({
           (theme-components.css) to the PUBLIC site only — the admin dashboard
           has its own layout without this class, so it never picks them up. */}
       <main className="theme-surface flex relative flex-col w-full  pb- ">
-        <div className="fixed top-0 left-0 right-0 z-50">
+        <div className="sv-web-nav fixed top-0 left-0 right-0 z-50">
           {theme === "smash-bold" ? (
             <SmashNav initialCartId={cartId} logoUrl={logoUrl} />
           ) : theme === "diner-classic" ? (
             <DinerNav initialCartId={cartId} logoUrl={logoUrl} />
           ) : theme === "refined-elegant" ? (
             <ElegantNav initialCartId={cartId} />
+          ) : theme === "pop-bento" ? (
+            <PopNav initialCartId={cartId} logoUrl={logoUrl} />
           ) : (
             <TopNavBar initialCartId={cartId} logoUrl={logoUrl} />
           )}
         </div>
         <div id="main-content" className="flex flex-col md:items-center   ">{children}</div>
-        <div className="flex flex-col w-full items-center ">
+        <div className="sv-web-footer flex flex-col w-full items-center ">
           <Footer logoUrl={logoUrl} />
           <div className="relative text-xs  mt-2 text-muted-foreground text-center p-4 md:py-3 bg-muted w-full border-t border-border">
             {SITE_CONFIG.footer.copyright}

@@ -85,8 +85,8 @@ export default function PreviewSavingsBanner() {
           <p className="pt-2 text-xs leading-relaxed text-stone-500">
             Orders placed here are commission-free. The full system is{" "}
             <span className="font-semibold text-stone-700">{formatUsd(o.discountedPrice)}</span>{" "}
-            one-time ({formatUsd(o.fullPrice)} value), less than a single year of a typical
-            Toast/Square subscription.
+            to build ({formatUsd(o.fullPrice)} value), with hosting &amp; care free for the first year. No
+            commission, and far less than a year of Owner.com or a delivery app&apos;s cut.
           </p>
         </div>
       )}

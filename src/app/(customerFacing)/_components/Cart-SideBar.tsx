@@ -27,6 +27,32 @@ export default function CartSideBar({ cartItems: initialItems, cartId }: { cartI
         setIsOpen(false);
     }, [pathname]);
 
+    // App mode's Cart tab asks for the cart (see components/app-mode/AppShell).
+    // Several cart sheets can be mounted (mobile + desktop nav); the first one
+    // with items claims the event so only one opens.
+    const hasItems = cartItems.some((i) => i.name != null && i.price);
+    useEffect(() => {
+        const onOpen = (e: Event) => {
+            if (e.defaultPrevented || !hasItems) return;
+            e.preventDefault();
+            setIsOpen(true);
+        };
+        window.addEventListener("sv:open-cart", onOpen);
+        return () => window.removeEventListener("sv:open-cart", onOpen);
+    }, [hasItems]);
+
+    // "Order again" lands on /Menu?cart=open: open the (first) cart sheet once.
+    useEffect(() => {
+        if (!hasItems || typeof window === "undefined") return;
+        const w = window as unknown as { __svCartOpened?: boolean };
+        if (w.__svCartOpened || new URLSearchParams(window.location.search).get("cart") !== "open") return;
+        w.__svCartOpened = true;
+        setIsOpen(true);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("cart");
+        window.history.replaceState(null, "", url.toString());
+    }, [hasItems]);
+
 
     useEffect(() => {
         // Always track the latest cart from SWR (including going back to empty),

@@ -8,6 +8,12 @@ import { getUberDirect } from "@/lib/siteSettings";
 import { createDelivery } from "@/lib/uber";
 import { deriveOrderType } from "@/lib/orderType";
 import { NEW_ORDER, PAID_STATUSES, isPaid } from "@/lib/orderStatus";
+import { pushOrderToPos } from "@/lib/pos/pipeline";
+import { REDEMPTION_WINDOW_DAYS } from "@/lib/loyaltyPromo";
+import { cartTotalCents } from "@/lib/cartTotal";
+import { dispatchRoutedDelivery } from "@/lib/delivery/dispatch";
+import { pushToOwners } from "@/lib/push/send";
+import { ownerNewOrderMessage } from "@/lib/push/messages";
 
 // One place that finalizes a paid cart: mark it "new" (a real, paid order
 // waiting on the kitchen - it counts as revenue AND triggers the kitchen
@@ -39,10 +45,20 @@ function sheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
+// Customer-typed text goes into the owner's email HTML - escape it so nobody
+// can inject links/markup into the restaurant's inbox.
+function esc(v: unknown): string {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
 export async function finalizeCart(
   cartId: string | undefined,
   email: string,
-): Promise<{ finalized: boolean; alreadyDone?: boolean }> {
+  // What Stripe actually collected (pi.amount_received). When given, the cart's
+  // CURRENT total must be covered - items added after checkout opened (paid at
+  // the old total) never become a "paid" order.
+  amountPaidCents?: number,
+): Promise<{ finalized: boolean; alreadyDone?: boolean; mismatch?: boolean }> {
   if (!cartId) return { finalized: false };
 
   const cart = await db.cart.findUnique({
@@ -51,6 +67,22 @@ export async function finalizeCart(
   });
   if (!cart || cart.items.length === 0) return { finalized: false };
   if (isPaid(cart.status)) return { finalized: false, alreadyDone: true };
+
+  if (typeof amountPaidCents === "number") {
+    const { total } = await cartTotalCents(cart);
+    if (amountPaidCents < total) {
+      console.error(`finalizeCart: cart ${cartId} paid ${amountPaidCents} < total ${total} - not finalized`);
+      const to = process.env.OWNER_ALERT_EMAIL || process.env.SMTP_USER;
+      if (to) {
+        await sendMail({
+          to,
+          subject: "Payment didn't match an order - check it",
+          html: `<p>A customer paid <b>$${(amountPaidCents / 100).toFixed(2)}</b> but their cart totals <b>$${(total / 100).toFixed(2)}</b> (items changed after checkout opened). The order was <b>not</b> sent to the kitchen. Check Stripe (cart ${cartId}) and contact the customer or refund.</p>`,
+        }).catch(() => {});
+      }
+      return { finalized: false, mismatch: true };
+    }
+  }
 
   // Atomically claim the cart. If another caller (webhook vs success page) already
   // claimed it, count is 0 and we stop - no duplicate orders/dispatch/emails.
@@ -89,8 +121,14 @@ export async function finalizeCart(
       .catch((e) => console.error("finalizeCart: redemption increment failed:", (e as Error).message));
   }
 
+  // Courier chosen by the delivery router (deliveryProvider set only when the
+  // "delivery_router" flag was on at checkout) → router dispatch with one
+  // failover. Carts without it use the original Uber block below, unchanged.
+  const routedCourier = !!cart.deliveryProvider && deriveOrderType(first) === "delivery";
+  if (routedCourier) await dispatchRoutedDelivery(cart, first, email);
+
   // Uber Direct dispatch (delivery only, when enabled). Best-effort.
-  try {
+  if (!routedCourier) try {
     const uber = await getUberDirect();
     if (deriveOrderType(first) === "delivery" && first.deliveryAddress) {
       if (!cart.uberQuoteId || !uber.enabled) {
@@ -163,23 +201,30 @@ export async function finalizeCart(
     .map((it) => {
       if (!it.name) return null;
       const quantity = it.quantity ?? 1;
-      const basePrice = (it.price ?? 0) * quantity;
-      const sidesTotal = it.sides.reduce((s, x) => s + (x.priceInCents ?? 0), 0);
-      const totalPrice = (basePrice + sidesTotal) / 100;
+      // CartItem.price is the unit price WITH the chosen sides already included
+      // (set at add-to-cart), so sides must not be added again here.
+      const totalPrice = ((it.price ?? 0) * quantity) / 100;
       const sidesStr = it.sides.map((s) => s.label).join(" | ");
       return `${it.name} x${quantity} ($${totalPrice.toFixed(2)})` + (sidesStr ? " → " + sidesStr : "");
     })
     .filter(Boolean)
     .join(" | ");
 
-  const total =
-    cart.items.reduce((sum, it) => {
-      const base = (it.price ?? 0) * (it.quantity ?? 1);
-      const sides = it.sides.reduce((s, side) => s + (side.priceInCents ?? 0), 0);
-      return sum + base + sides;
-    }, 0) / 100;
-
+  // Same math as checkout (Menu/[id]/purchase): items − promo discount + delivery fee.
   const orderType = deriveOrderType(first);
+  const itemsCents = cart.items.reduce((sum, it) => sum + (it.price ?? 0) * (it.quantity ?? 1), 0);
+  const promoPct = cart.promoCampaignId
+    ? (await db.loyaltyCampaign
+        .findFirst({
+          // Same rule as checkout: the code only counts inside its redemption window.
+          where: { id: cart.promoCampaignId, sentAt: { gte: new Date(Date.now() - REDEMPTION_WINDOW_DAYS * 86400_000) } },
+          select: { discountPercent: true },
+        })
+        .catch(() => null))?.discountPercent ?? 0
+    : 0;
+  const discountCents = Math.round((itemsCents * promoPct) / 100);
+  const deliveryFeeCents = orderType === "delivery" ? cart.uberFeeCents ?? 0 : 0;
+  const total = (Math.max(0, itemsCents - discountCents) + deliveryFeeCents) / 100;
 
   // Google sheet log (best-effort).
   try {
@@ -217,6 +262,9 @@ export async function finalizeCart(
       `Items: ${itemsList}`,
   ).catch(() => {});
 
+  // Owner web push (flag "web_push"; no-op otherwise). Best-effort.
+  await pushToOwners(ownerNewOrderMessage(Math.round(total * 100), orderType)).catch(() => 0);
+
   // Owner email (best-effort).
   try {
     const alertTo = process.env.OWNER_ALERT_EMAIL || process.env.SMTP_USER;
@@ -227,13 +275,13 @@ export async function finalizeCart(
         html: `<div style="font-family:system-ui,Segoe UI,sans-serif;font-size:15px;color:#1c1917">
           <h2 style="margin:0 0 12px">New ${orderType} order - $${total.toFixed(2)}</h2>
           <table style="border-collapse:collapse">
-            ${first.customerName ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Name</td><td>${first.customerName}</td></tr>` : ""}
-            ${first.customerPhone ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Phone</td><td>${first.customerPhone}</td></tr>` : ""}
-            <tr><td style="padding:4px 14px 4px 0;color:#78716c">Email</td><td>${email}</td></tr>
+            ${first.customerName ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Name</td><td>${esc(first.customerName)}</td></tr>` : ""}
+            ${first.customerPhone ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Phone</td><td>${esc(first.customerPhone)}</td></tr>` : ""}
+            <tr><td style="padding:4px 14px 4px 0;color:#78716c">Email</td><td>${esc(email)}</td></tr>
             ${orderType === "delivery"
-              ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Deliver to</td><td>${first.deliveryAddress ?? ""}${first.apt ? ` (${first.apt})` : ""}</td></tr>`
-              : `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Pickup</td><td>${first.pickupDay ? new Date(first.pickupDay).toDateString() : ""} ${first.pickupTime ?? ""}</td></tr>`}
-            <tr><td style="padding:4px 14px 4px 0;color:#78716c;vertical-align:top">Items</td><td>${itemsList}</td></tr>
+              ? `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Deliver to</td><td>${esc(first.deliveryAddress ?? "")}${first.apt ? ` (${esc(first.apt)})` : ""}</td></tr>`
+              : `<tr><td style="padding:4px 14px 4px 0;color:#78716c">Pickup</td><td>${first.pickupDay ? new Date(first.pickupDay).toDateString() : ""} ${esc(first.pickupTime ?? "")}</td></tr>`}
+            <tr><td style="padding:4px 14px 4px 0;color:#78716c;vertical-align:top">Items</td><td>${esc(itemsList).replace(/\n/g, "<br>")}</td></tr>
             <tr><td style="padding:4px 14px 4px 0;color:#78716c">Total</td><td><strong>$${total.toFixed(2)}</strong></td></tr>
           </table></div>`,
       });
@@ -241,6 +289,13 @@ export async function finalizeCart(
   } catch (e) {
     console.error("Order email failed (order still saved):", e);
   }
+
+  // POS push (Square/Clover). Runs LAST so the owner alerts above always go out
+  // first. No-op unless the "pos_push" flag is on and a POS is connected; on
+  // failure it schedules retries / tells the owner to enter it by hand.
+  await pushOrderToPos(cart.id, email).catch((e) =>
+    console.error("POS push error (order still saved):", (e as Error).message),
+  );
 
   // NOTE: no revalidatePath here - finalizeCart runs from the success PAGE (a
   // Server Component render, where revalidatePath throws) as well as the webhook.

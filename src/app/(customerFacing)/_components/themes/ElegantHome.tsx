@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cfg } from "@/lib/configOpt";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
@@ -212,7 +213,7 @@ export function ElegantHome({ content, heroImages, gallery, galleryItems = [], f
   // Media's four Refined slots win; otherwise cycle the owner's other photos.
   const slotKeys = ["elegant_hero", "elegant_intro", "elegant_visit", "elegant_story"];
   const pic = (n: number) => content.images[slotKeys[n]] ?? photos[n % Math.max(photos.length, 1)] ?? null;
-  const headline = (content.words.theme_headline || `Neighborhood ${c.primaryDish || c.cuisines?.[0] || "kitchen"}`).toUpperCase();
+  const headline = (content.words.theme_headline || `Neighborhood ${cfg("primaryDish") || c.cuisines?.[0] || "kitchen"}`).toUpperCase();
   const words = headline.split(/\s+/);
   // Long headlines get more, shorter lines and a smaller size — a 7-word
   // headline at 6.5rem wrapped into a wall of stencil that was hard to read.
@@ -227,7 +228,7 @@ export function ElegantHome({ content, heroImages, gallery, galleryItems = [], f
   const heroFade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
   return (
-    <div className="theme-bespoke w-full overflow-x-clip" style={{ color: "var(--tp-text)", background: "var(--tp-paper)" }}>
+    <div className="tp-home theme-bespoke w-full overflow-x-clip" style={{ color: "var(--tp-text)", background: "var(--tp-paper)" }}>
       {/* 1 · Full-screen photo hero */}
       <section ref={heroRef} className="relative flex h-svh min-h-[560px] items-center justify-center overflow-hidden" style={{ background: INK }}>
         {pic(0) && (
@@ -265,7 +266,7 @@ export function ElegantHome({ content, heroImages, gallery, galleryItems = [], f
 
       {/* sticky soft-gold order pill (Fiorella's ORDER ONLINE) */}
       <motion.div
-        className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2"
+        className="sv-float-bottom fixed bottom-5 left-1/2 z-40 -translate-x-1/2"
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 1.6, duration: 0.8, ease: EASE }}

@@ -44,7 +44,7 @@ export async function updateSiteImage(key: string, formData: FormData) {
     console.error("updateSiteImage error:", error);
     return {
       error:
-        "Couldn't save the image. On the live site this usually means image storage (Vercel Blob) isn't connected yet.",
+        `Couldn't save the image: ${(error as Error)?.message || "storage error"}. Try again in a minute.`,
     };
   }
 }
